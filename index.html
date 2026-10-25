@@ -1,0 +1,1982 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Calm">
+<meta name="theme-color" content="#0F1528">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Calm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&display=swap">
+<style>
+/* Layout: one full-bleed WebGL scene, two tiny floating controls, a start card on first load. Deliberately single dark look (a dim room for sensory play). */
+:root {
+  --night: #0F1528;
+  --ink: #F2F4FB;
+  --soft: #B9C2DE;
+  --glass: rgba(255, 255, 255, 0.10);
+  --glass-hi: rgba(255, 255, 255, 0.18);
+  --sage: #8FC1B5;
+  --font-ui: 'Nunito', ui-rounded, 'SF Pro Rounded', system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--night);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+#scene, #fx {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+#fx { pointer-events: none; }
+.mark {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 18px);
+  left: calc(env(safe-area-inset-left, 0px) + 20px);
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+  pointer-events: none;
+}
+.mark small { font-size: 12px; font-weight: 700; color: var(--soft); letter-spacing: 0.3px; }
+.mark span { font-size: 22px; font-weight: 800; color: var(--sage); margin-top: 2px; }
+.round {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 14px);
+  right: calc(env(safe-area-inset-right, 0px) + 16px);
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
+  border: 0;
+  background: var(--glass);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.round:hover { background: var(--glass-hi); }
+.round:focus-visible, .start:focus-visible { outline: 3px solid var(--sage); outline-offset: 3px; }
+.kid {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 14px);
+  right: calc(env(safe-area-inset-right, 0px) + 16px);
+  display: flex;
+  gap: 8px;
+}
+.kid[hidden] { display: none !important; }
+.kid .round { position: relative; top: auto; right: auto; }
+.grown {
+  top: auto;
+  right: auto;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+  left: calc(env(safe-area-inset-left, 0px) + 16px);
+  opacity: 0.55;
+}
+.grown:hover, .grown:focus-visible { opacity: 1; }
+.round svg.ring { position: absolute; inset: 0; pointer-events: none; }
+.tip.tipLow { top: auto; right: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 74px); left: calc(env(safe-area-inset-left, 0px) + 16px); }
+.round { touch-action: none; }
+.tip {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 70px);
+  right: calc(env(safe-area-inset-right, 0px) + 16px);
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: rgba(29, 39, 66, 0.9);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.tip.on { opacity: 1; }
+.card .note { margin: 6px 0 0; font-size: 13px; color: var(--soft); font-weight: 600; }
+.alldone { z-index: 15; }
+.veil { z-index: 25; }
+.panel {
+  z-index: 20;
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(8, 11, 22, 0.55);
+  transition: opacity 0.35s ease;
+}
+.panel[hidden] { display: none !important; }
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  max-height: 88%;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 22px max(20px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 20px) max(20px, env(safe-area-inset-left, 0px));
+  border-radius: 28px 28px 0 0;
+  background: #1A2238;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.sheet header { display: flex; justify-content: space-between; align-items: center; }
+.sheet h2 { margin: 0; font-size: 22px; font-weight: 800; }
+.done-btn {
+  min-height: 44px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 22px;
+  background: var(--sage);
+  color: #0F1F1B;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.group { display: flex; flex-direction: column; gap: 8px; }
+.group > span { font-size: 13px; font-weight: 800; color: var(--soft); letter-spacing: 0.3px; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.seg button[aria-pressed="true"] { background: var(--sage); color: #0F1F1B; }
+.seg button:focus-visible, .done-btn:focus-visible { outline: 3px solid var(--sage); outline-offset: 2px; }
+.sheet input[type="range"] { width: 100%; accent-color: var(--sage); min-height: 32px; }
+.sheet .small { font-size: 13px; color: var(--soft); font-weight: 600; margin: 0; }
+.alldone {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  transition: opacity 2s ease;
+}
+.alldone[hidden] { display: none !important; }
+.alldone .card { background: rgba(20, 27, 46, 0.6); }
+.again {
+  position: relative;
+  width: 100%;
+  min-height: 56px;
+  border: 0;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 17px;
+  font-weight: 800;
+  cursor: pointer;
+  overflow: hidden;
+  touch-action: none;
+}
+.again i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: rgba(143, 193, 181, 0.35); }
+.again span { position: relative; }
+
+/* ---------- Calm home: pick a play space ---------- */
+.home {
+  position: fixed;
+  inset: 0;
+  z-index: 24;
+  overflow-y: auto;
+  background: var(--night);
+  transition: opacity 0.5s ease;
+}
+.home.gone { opacity: 0; pointer-events: none; }
+.home-in {
+  max-width: 520px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  min-height: 100%;
+  padding-block: calc(env(safe-area-inset-top, 0px) + 20px) calc(env(safe-area-inset-bottom, 0px) + 84px);
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.brand { display: flex; flex-direction: column; line-height: 1; }
+.brand small { font-size: 13px; font-weight: 700; color: var(--soft); letter-spacing: 0.3px; }
+.brand span { font-size: 32px; font-weight: 800; color: var(--sage); margin-top: 2px; }
+.home h1 { margin: 8px 0 0; font-size: 28px; font-weight: 800; line-height: 1.15; text-wrap: balance; }
+.space {
+  position: relative;
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 28px;
+  overflow: hidden;
+  text-align: left;
+  font-family: var(--font-ui);
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0;
+}
+.space:focus-visible { outline: 3px solid var(--sage); outline-offset: 3px; }
+.space .label { position: absolute; left: 18px; bottom: 16px; display: flex; flex-direction: column; gap: 2px; }
+.space .label b { font-size: 24px; font-weight: 800; }
+.space .label em { font-style: normal; font-size: 13px; font-weight: 700; opacity: 0.85; }
+.space.feature { height: 210px; background: #1B2440; }
+.space.feature .art { position: absolute; inset: 0; }
+.bub {
+  position: absolute;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255,255,255,0.75) 0 6%, rgba(255,255,255,0) 14%),
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0) 58%, rgba(255,255,255,0.08) 70%, rgba(255,255,255,0) 100%),
+    conic-gradient(from 200deg, rgba(150,200,255,0.55), rgba(255,170,210,0.5), rgba(255,230,150,0.45), rgba(160,255,210,0.5), rgba(150,200,255,0.55));
+  -webkit-mask: radial-gradient(circle, transparent 0 52%, #000 70%);
+  mask: radial-gradient(circle, transparent 0 52%, #000 70%);
+  animation: bob 6s ease-in-out infinite;
+}
+.bub.gloss { -webkit-mask: none; mask: none; background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.8) 0 7%, rgba(255,255,255,0) 15%); }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.space.soon { height: 150px; cursor: default; }
+.space.soon .label b { font-size: 20px; }
+.chip {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 800;
+}
+.space.sand { background: #6F5B3E; color: #FFF6E6; }
+.space.water { background: #1F4A55; color: #E6FAFF; }
+.space.glow { background: #3A2440; color: #FFEDE6; }
+.space.stars { background: #121A30; color: #F3E9C6; }
+.space.soon svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.home .foot { margin: 0; font-size: 13px; font-weight: 600; color: var(--soft); }
+.round.grown, .tip.tipLow, .panel, .alldone { z-index: 30; }
+.panel { z-index: 32; }
+.back { left: calc(env(safe-area-inset-left, 0px) + 16px); right: auto; }
+@media (prefers-reduced-motion: reduce) { .bub { animation: none; } }
+.chain {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 26px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  font-variant-numeric: tabular-nums;
+}
+.chain.on { opacity: 1; transform: none; }
+.chain b { font-size: 34px; font-weight: 800; color: var(--ink); line-height: 1; transition: transform 0.15s ease; }
+.chain b.bump { transform: scale(1.18); }
+.chain small { font-size: 12px; font-weight: 700; color: var(--soft); letter-spacing: 0.3px; margin-top: 2px; }
+.hint {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 34px);
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--soft);
+  pointer-events: none;
+  transition: opacity 1.2s ease;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.hint.gone { opacity: 0; }
+.veil {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 14, 28, 0.35);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  transition: opacity 0.6s ease;
+}
+.veil.gone { opacity: 0; pointer-events: none; }
+.card {
+  width: 100%;
+  max-width: 320px;
+  padding: 28px 24px 24px;
+  border-radius: 32px;
+  background: rgba(29, 39, 66, 0.72);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+.card h1 { margin: 0; font-size: 34px; font-weight: 800; text-wrap: balance; }
+.card p { margin: 0 0 10px; font-size: 16px; line-height: 1.45; color: var(--soft); font-weight: 600; }
+.start {
+  width: 100%;
+  min-height: 60px;
+  border: 0;
+  border-radius: 30px;
+  background: var(--sage);
+  color: #0F1F1B;
+  font-family: var(--font-ui);
+  font-size: 20px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.nogl { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; text-align: center; color: var(--soft); }
+</style>
+</head>
+<body>
+
+
+<canvas id="scene" aria-label="Bubble play area. Hold to blow a bubble, tap a bubble to pop it, push bubbles together to join them."></canvas>
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<button class="round back" id="back" type="button" aria-label="Back to Calm home">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>
+</button>
+
+<div class="kid" id="kid">
+  <button class="round" id="bPop" type="button" aria-label="Pop sounds: Musical. Tap to change.">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l11-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="17" cy="16" r="3"></circle></svg>
+  </button>
+  <button class="round" id="bBg" type="button" aria-label="Background sound: Off. Tap to change.">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 14a4 4 0 0 1-.6-7.96A6 6 0 0 1 18 7a4 4 0 0 1 0 8"></path><path d="M8 18l-1 2M12 18l-1 2M16 18l-1 2"></path></svg>
+  </button>
+  <button class="round" id="bScene" type="button" aria-label="Scene: Night room. Tap to change.">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"></rect><path d="M3 16l5-5 4 4 3-3 6 6"></path><circle cx="16" cy="9" r="1.5"></circle></svg>
+  </button>
+</div>
+<div class="tip" id="tip">Musical</div>
+
+<button class="round grown" id="grown" type="button" aria-label="Grown-ups settings. Press and hold to open.">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
+  <svg class="ring" width="48" height="48" viewBox="0 0 48 48" aria-hidden="true"><circle id="ringArc" cx="24" cy="24" r="22" fill="none" stroke="#8FC1B5" stroke-width="3" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="138.2" transform="rotate(-90 24 24)"></circle></svg>
+</button>
+<div class="tip tipLow" id="tipLow">Grown-ups: press and hold</div>
+
+<div class="panel" id="panel" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="panelTitle">
+    <header><h2 id="panelTitle">Grown-ups</h2><button class="done-btn" id="panelDone" type="button">Done</button></header>
+    <div class="group"><span>Wind down</span><div class="seg" data-key="wind">
+      <button type="button" data-v="0">Off</button><button type="button" data-v="5">5 min</button><button type="button" data-v="10">10 min</button><button type="button" data-v="15">15 min</button><button type="button" data-v="20">20 min</button>
+    </div><p class="small" id="windNote">Sound and colour fade slowly, the bubbles drift away, then it says goodnight. No sudden stop.</p></div>
+    <div class="group"><label for="bgVol"><span style="font-size: 13px; font-weight: 800; color: var(--soft); letter-spacing: 0.3px">Background sound volume</span></label>
+      <input id="bgVol" type="range" min="0" max="100" value="45">
+    </div>
+    <div class="group"><span>Sound and scene buttons</span><div class="seg" data-key="kid">
+      <button type="button" data-v="show">Show</button><button type="button" data-v="hide">Hide</button>
+    </div><p class="small">Hide them if they become a distraction. Whatever is chosen stays on.</p></div>
+    <div class="group"><span>Special bubbles</span><div class="seg" data-key="rarity">
+      <button type="button" data-v="rare">Rare</button><button type="button" data-v="some">Sometimes</button><button type="button" data-v="often">Often</button>
+    </div></div>
+  </div>
+</div>
+
+<div class="alldone" id="alldone" hidden>
+  <div class="card">
+    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#F1DDA4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"></path></svg>
+    <h1>All done</h1>
+    <p>The bubbles have floated off to sleep.</p>
+    <button class="again" id="again" type="button" aria-label="Press and hold to play again"><i id="againFill"></i><span>Hold to play again</span></button>
+  </div>
+</div>
+
+<div class="hint" id="hint">Hold anywhere and keep holding</div>
+<div class="chain" id="chain" aria-live="polite"><b id="chainN">3</b><small>in a row</small></div>
+
+<div class="home" id="home">
+  <div class="home-in">
+    <div class="brand"><small>little easier</small><span>Calm</span></div>
+    <h1>What feels good today?</h1>
+
+    <button class="space feature" id="start" type="button" aria-label="Bubbles. Hold to blow, tap to pop.">
+      <div class="art" aria-hidden="true">
+        <span class="bub" style="width: 120px; height: 120px; right: 34px; top: 22px;"></span>
+        <span class="bub gloss" style="width: 120px; height: 120px; right: 34px; top: 22px;"></span>
+        <span class="bub" style="width: 62px; height: 62px; right: 168px; top: 48px; animation-delay: -2s;"></span>
+        <span class="bub" style="width: 40px; height: 40px; right: 120px; top: 140px; animation-delay: -4s;"></span>
+        <span class="bub" style="width: 24px; height: 24px; right: 22px; top: 156px; animation-delay: -1s;"></span>
+      </div>
+      <div class="label"><em>Hold to blow, tap to pop</em><b>Bubbles</b></div>
+    </button>
+
+    <div class="grid">
+      <div class="space soon sand" role="img" aria-label="Sand, coming soon">
+        <svg viewBox="0 0 160 150" preserveAspectRatio="xMidYMid slice" fill="none" stroke="#8C7550" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M-5 40 C 30 28, 60 52, 95 40 S 150 28, 170 40"></path><path d="M-5 62 C 30 50, 60 74, 95 62 S 150 50, 170 62"></path><path d="M-5 84 C 30 72, 60 96, 95 84 S 150 72, 170 84"></path></svg>
+        <span class="chip">Soon</span>
+        <div class="label"><b>Sand</b></div>
+      </div>
+      <div class="space soon water" role="img" aria-label="Water, coming soon">
+        <svg viewBox="0 0 160 150" preserveAspectRatio="xMidYMid slice" fill="none" stroke="#3E7482" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M-5 50 q 20 -14 40 0 t 40 0 t 40 0 t 40 0 t 40 0"></path><path d="M-5 74 q 20 -14 40 0 t 40 0 t 40 0 t 40 0 t 40 0"></path></svg>
+        <span class="chip">Soon</span>
+        <div class="label"><b>Water</b></div>
+      </div>
+      <div class="space soon glow" role="img" aria-label="Glow, coming soon">
+        <svg viewBox="0 0 160 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><ellipse cx="108" cy="52" rx="28" ry="32" fill="#B9705A" opacity="0.8"></ellipse><ellipse cx="72" cy="92" rx="17" ry="15" fill="#A35E52" opacity="0.7"></ellipse></svg>
+        <span class="chip">Soon</span>
+        <div class="label"><b>Glow</b></div>
+      </div>
+      <div class="space soon stars" role="img" aria-label="Stars, coming soon">
+        <svg viewBox="0 0 160 150" preserveAspectRatio="xMidYMid slice" fill="#F3E9C6" aria-hidden="true"><circle cx="30" cy="30" r="2"></circle><circle cx="72" cy="22" r="1.5"></circle><circle cx="122" cy="38" r="2.5"></circle><circle cx="96" cy="64" r="1.5"></circle><circle cx="140" cy="76" r="2"></circle><circle cx="50" cy="62" r="2"></circle></svg>
+        <span class="chip">Soon</span>
+        <div class="label"><b>Stars</b></div>
+      </div>
+    </div>
+
+    <p class="foot">Grown-ups: press and hold the lock in the bottom corner for the wind-down timer, volume and more.</p>
+  </div>
+</div>
+
+<script>
+(() => {
+  const cv = document.getElementById('scene');
+  const fx = document.getElementById('fx');
+  const ctx = fx.getContext('2d');
+  const gl = cv.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'high-performance' });
+  if (!gl) {
+    const d = document.createElement('div');
+    d.className = 'nogl';
+    d.textContent = 'This device can’t show the bubbles yet. Try opening the page in Safari or Chrome.';
+    document.body.appendChild(d);
+    return;
+  }
+
+  const maxVec = gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS) || 64;
+  const MAXB = Math.max(12, Math.min(40, Math.floor((maxVec - 16) / 3)));
+
+  const VS = 'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
+  const FS = `
+precision highp float;
+uniform vec2 uRes;
+uniform float uTime;
+uniform int uN;
+uniform vec4 uB[${MAXB}];
+uniform vec4 uW[${MAXB}];
+uniform vec4 uC[${MAXB}];
+uniform float uScene;
+uniform float uDim;
+
+float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float noise(vec2 p){
+  vec2 i = floor(p), f = fract(p);
+  f = f*f*(3.0-2.0*f);
+  return mix(mix(hash(i), hash(i+vec2(1.,0.)), f.x), mix(hash(i+vec2(0.,1.)), hash(i+vec2(1.,1.)), f.x), f.y);
+}
+float fbm(vec2 p){
+  float v = 0.0, a = 0.5;
+  for (int i = 0; i < 4; i++){ v += a*noise(p); p = p*2.03 + 1.7; a *= 0.5; }
+  return v;
+}
+// two lights: a cool window glow top-left, a soft teal lamp bottom-right
+vec2 L1(){ return vec2(0.16, 1.04) * uRes; }
+vec2 L2(){ return vec2(0.96, 0.04) * uRes; }
+vec3 bgBath(vec2 uv, float asp){
+  vec3 c = mix(vec3(0.10, 0.28, 0.33), vec3(0.30, 0.52, 0.56), smoothstep(0.0, 1.0, uv.y));
+  vec2 t = uv * vec2(asp, 1.0) * 9.0;
+  vec2 f = abs(fract(t) - 0.5);
+  float grout = smoothstep(0.47, 0.5, max(f.x, f.y));
+  c = mix(c, c * 1.18 + 0.03, grout * 0.5);
+  float g = exp(-length((uv - vec2(0.2, 1.05)) * vec2(asp, 1.0)) * 2.0);
+  c += vec3(0.35, 0.30, 0.22) * g * 0.45;
+  float water = 1.0 - smoothstep(0.15, 0.17, uv.y + 0.008*sin(uv.x*30.0 + uTime*1.2));
+  c = mix(c, vec3(0.08, 0.30, 0.38) + 0.05*sin(uv.x*50.0 + uTime*2.0 + uv.y*80.0), water*0.85);
+  return c;
+}
+vec3 bgGarden(vec2 uv, float asp){
+  vec3 c = mix(vec3(0.22, 0.12, 0.24), vec3(0.95, 0.58, 0.42), smoothstep(0.35, 1.05, uv.y));
+  c = mix(c, vec3(0.16, 0.12, 0.30), smoothstep(0.75, 1.1, uv.y) * 0.6);
+  float sun = exp(-length((uv - vec2(0.72, 0.42)) * vec2(asp, 1.0)) * 7.0);
+  c += vec3(1.0, 0.65, 0.35) * sun * 0.5;
+  float hill = 0.22 + 0.05*sin(uv.x*4.0 + 1.3) + 0.03*sin(uv.x*11.0);
+  float grass = 0.012*sin(uv.x*260.0) + 0.008*sin(uv.x*610.0 + 2.0);
+  float h = 1.0 - smoothstep(hill + grass - 0.004, hill + grass + 0.004, uv.y);
+  c = mix(c, vec3(0.08, 0.09, 0.10), h);
+  for (int i = 0; i < 7; i++){
+    float fi = float(i);
+    vec2 cen = vec2(fract(0.1 + fi*0.31 + 0.05*sin(uTime*0.3 + fi*3.0)), 0.12 + 0.2*fract(fi*0.57) + 0.03*sin(uTime*0.5 + fi));
+    float blink = 0.5 + 0.5*sin(uTime*(1.3 + fi*0.2) + fi*4.0);
+    float l = length((uv - cen) * vec2(asp, 1.0));
+    c += vec3(1.0, 0.9, 0.45) * exp(-l*120.0) * blink * 0.9 + vec3(1.0, 0.85, 0.4) * exp(-l*30.0) * blink * 0.08;
+  }
+  return c;
+}
+vec3 bgSpace(vec2 uv, float asp){
+  vec2 q = uv * vec2(asp, 1.0);
+  vec3 c = vec3(0.012, 0.016, 0.04);
+  float neb = fbm(q*2.2 + vec2(uTime*0.004, 0.0));
+  c += vec3(0.22, 0.08, 0.30) * smoothstep(0.45, 0.85, neb) * 0.45;
+  c += vec3(0.05, 0.18, 0.28) * smoothstep(0.5, 0.9, fbm(q*1.6 + 7.0)) * 0.4;
+  vec2 cell = floor(q*70.0);
+  float s = hash(cell);
+  if (s > 0.985) {
+    vec2 sp = fract(q*70.0) - 0.5;
+    float tw = 0.6 + 0.4*sin(uTime*(1.0 + s*3.0) + s*50.0);
+    c += vec3(0.9, 0.92, 1.0) * exp(-dot(sp, sp)*60.0) * tw;
+  }
+  return c;
+}
+vec3 bg(vec2 p){
+  vec2 uv = p / uRes;
+  float asp = uRes.x / uRes.y;
+  if (uScene > 0.5 && uScene < 1.5) return bgBath(uv, asp);
+  if (uScene > 1.5 && uScene < 2.5) return bgGarden(uv, asp);
+  if (uScene > 2.5) return bgSpace(uv, asp);
+  vec3 c = mix(vec3(0.04, 0.055, 0.11), vec3(0.11, 0.14, 0.25), smoothstep(0.0, 1.0, uv.y));
+  float g = exp(-length((uv - vec2(0.16, 1.04)) * vec2(asp, 1.0)) * 2.3);
+  c += vec3(0.22, 0.24, 0.36) * g * 0.75;
+  float g2 = exp(-length((uv - vec2(0.96, 0.04)) * vec2(asp, 1.0)) * 2.6);
+  c += vec3(0.08, 0.22, 0.21) * g2 * 0.5;
+  float g3 = exp(-length((uv - vec2(1.0, 0.75)) * vec2(asp, 1.0)) * 3.2);
+  c += vec3(0.22, 0.10, 0.20) * g3 * 0.3;
+  for (int i = 0; i < 6; i++){
+    float fi = float(i);
+    vec2 cen = vec2(fract(0.13 + fi*0.37 + 0.04*sin(uTime*0.05 + fi*2.0)), fract(fi*0.61 + uTime*0.004*(1.0 + fi*0.35)));
+    vec2 dd = (uv - cen) * vec2(asp, 1.0);
+    float br = 0.035 + 0.035*fract(fi*0.73);
+    c += vec3(0.42, 0.48, 0.70) * 0.04 * (1.0 - smoothstep(br*0.6, br, length(dd)));
+  }
+  return c;
+}
+void main(){
+  vec2 p = gl_FragCoord.xy;
+  vec3 col = bg(p);
+  for (int i = 0; i < ${MAXB}; i++){
+    if (i >= uN) break;
+    vec4 b = uB[i];
+    vec4 w = uW[i];
+    vec4 c = uC[i];
+    vec2 d = p - b.xy;
+    float R0 = b.z;
+    float kind = c.w;
+    bool isGlow = kind > 3.5 && kind < 4.5;
+    float ext = isGlow ? 2.0 : 1.35;
+    if (abs(d.x) > R0*ext || abs(d.y) > R0*ext) continue;
+    float ang = atan(d.y, d.x);
+    float shiver = c.y * c.y * 0.018 * sin(5.0*ang + uTime*38.0 + b.w*9.0);
+    float R = R0 * (1.0 + w.x*sin(2.0*ang + w.z) + w.y*sin(3.0*ang - w.z*1.7) + shiver);
+    float q = length(d) / R;
+    vec3 glowCol = vec3(0.55, 1.0, 0.85);
+    float pulse = 0.85 + 0.15*sin(uTime*2.2 + b.w*6.0);
+    if (q > 1.0) {
+      if (isGlow) col += glowCol * exp(-(q - 1.0)*4.5) * 0.28 * pulse * w.w;
+      continue;
+    }
+    float aa = 1.6 / R;
+    float m = (1.0 - smoothstep(1.0 - aa, 1.0, q)) * w.w;
+    vec2 nq = d / R;
+    float z = sqrt(max(1.0 - q*q, 0.0));
+    float fres = 0.04 + 0.96*pow(1.0 - z, 3.0);
+
+    // film thickness: each bubble starts at its own thickness and thins with age and strain
+    float thin = c.x;
+    float sw = uTime*c.z + q*1.8 + b.w*6.0;
+    mat2 rot = mat2(cos(sw), -sin(sw), sin(sw), cos(sw));
+    vec2 fp = rot * (nq*(1.1 + b.w*0.6)) + vec2(b.w*13.1, b.w*7.7);
+    float base = mix(560.0, 230.0, thin);
+    float th = base + (300.0 + 220.0*b.w)*fbm(fp + vec2(0.0, -uTime*0.06)) + (120.0 + 140.0*b.w)*(0.3 - nq.y);
+    // thin patches (the dark spots a bubble gets just before it pops)
+    float spots = smoothstep(0.55, 0.8, fbm(fp*2.3 + uTime*0.2)) * smoothstep(0.35, 1.0, c.y + thin*0.4);
+    th = max(15.0, th - spots*520.0);
+    vec3 fc = 0.5 - 0.5*cos(12.566*1.33*th*(0.35 + 0.65*z) / vec3(650.0, 540.0, 450.0));
+    fc = mix(fc, vec3(dot(fc, vec3(0.333))), 0.1);
+    // special bubbles
+    if (kind > 0.5 && kind < 1.5) { // gold
+      fc = mix(fc, vec3(1.0, 0.78, 0.36) * (0.45 + 0.9*fc.r), 0.78);
+    } else if (kind > 1.5 && kind < 2.5) { // rainbow, slowly cycling
+      vec3 rb = 0.5 + 0.5*cos(6.2832*(vec3(0.0, 0.33, 0.67) + uTime*0.12 + q*0.6 + fbm(fp*1.3)*0.8));
+      fc = mix(fc, rb, 0.8) * pulse * 1.1;
+    } else if (kind > 2.5 && kind < 3.5) { // ruby
+      fc = mix(fc, vec3(1.0, 0.32, 0.42) * (0.45 + 0.9*fc.g), 0.75);
+    } else if (isGlow) {
+      fc = mix(fc, glowCol * (0.5 + 0.7*fc.g), 0.65);
+    } else if (kind > 5.5 && kind < 6.5) { // snow globe: icy, frosted
+      fc = mix(fc, vec3(0.85, 0.93, 1.0) * (0.55 + 0.6*fc.b), 0.72);
+    } else if (kind > 6.5 && kind < 7.5) { // shooting star: deep violet night
+      fc = mix(fc, vec3(0.55, 0.45, 1.0) * (0.45 + 0.8*fc.r), 0.7);
+    } else if (kind > 7.5) { // fizz: crackly electric blue
+      float crack = smoothstep(0.62, 0.7, fbm(fp*4.0 + uTime*1.5));
+      fc = mix(fc, vec3(0.45, 0.8, 1.0) * (0.5 + 0.7*fc.g), 0.6) + vec3(0.6, 0.9, 1.0)*crack*0.6*pulse;
+    }
+
+    // what the bubble shows depends on where it sits: refraction behind, the room reflected around it
+    vec3 refr = bg(p - nq*R*0.22);
+    vec3 env = bg(p + nq*R*1.6) * 1.8;
+    vec3 bc = refr * (0.93 - 0.14*fres);
+    bc += fc * (0.06 + 0.9*fres) * (0.7 + 0.6*env.b*2.0);
+    bc += env * fres * 0.35;
+    bc += fc * smoothstep(0.86, 1.0, q) * 0.2;
+
+    // window highlight faces the top-left light, so it moves as the bubble moves
+    vec2 l1 = normalize(L1() - b.xy);
+    float near1 = clamp(1.25 - length(L1() - b.xy) / length(uRes), 0.35, 1.0);
+    vec2 wc = l1 * 0.48;
+    vec2 wp = (nq - wc);
+    float ca = l1.x, sa = l1.y;
+    wp = mat2(ca, sa, -sa, ca) * wp;
+    wp *= vec2(1.15, 1.0);
+    float wr = length(max(abs(wp) - vec2(0.09, 0.11), 0.0)) - 0.05;
+    float win = 1.0 - smoothstep(-0.015, 0.02, wr);
+    float bars = smoothstep(0.008, 0.02, abs(wp.x)) * smoothstep(0.008, 0.02, abs(wp.y));
+    bc += vec3(1.0) * win * bars * 0.55 * near1;
+    // small teal glint from the lamp
+    vec2 l2 = normalize(L2() - b.xy);
+    float near2 = clamp(1.3 - length(L2() - b.xy) / length(uRes), 0.2, 1.0);
+    vec2 h2 = nq - l2 * 0.55;
+    bc += vec3(0.6, 0.95, 0.9) * exp(-dot(h2, h2)*90.0) * 0.4 * near2;
+
+    if (isGlow) bc += glowCol * (0.06 + 0.12*fres) * pulse;
+    col = mix(col, bc, m);
+  }
+  col *= uDim;
+  gl_FragColor = vec4(col, 1.0);
+}`;
+
+  function sh(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    return s;
+  }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS));
+  gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS));
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  const aLoc = gl.getAttribLocation(prog, 'a');
+  gl.enableVertexAttribArray(aLoc);
+  gl.vertexAttribPointer(aLoc, 2, gl.FLOAT, false, 0, 0);
+  const U = {
+    res: gl.getUniformLocation(prog, 'uRes'),
+    time: gl.getUniformLocation(prog, 'uTime'),
+    n: gl.getUniformLocation(prog, 'uN'),
+    b: gl.getUniformLocation(prog, 'uB'),
+    w: gl.getUniformLocation(prog, 'uW'),
+    c: gl.getUniformLocation(prog, 'uC'),
+    scene: gl.getUniformLocation(prog, 'uScene'),
+    dim: gl.getUniformLocation(prog, 'uDim')
+  };
+  const bArr = new Float32Array(MAXB * 4);
+  const wArr = new Float32Array(MAXB * 4);
+  const cArr = new Float32Array(MAXB * 4);
+
+  // ---------- sizing ----------
+  let W = 0, H = 0, scale = Math.min(window.devicePixelRatio || 1, 2), quality = 1;
+  function resize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    const s = scale * quality;
+    cv.width = Math.round(W * s);
+    cv.height = Math.round(H * s);
+    const fs = Math.min(window.devicePixelRatio || 1, 2);
+    fx.width = Math.round(W * fs);
+    fx.height = Math.round(H * fs);
+    ctx.setTransform(fs, 0, 0, fs, 0, 0);
+    gl.viewport(0, 0, cv.width, cv.height);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  const burstR = () => Math.min(W, H) * 0.47;
+
+  // ---------- sound: soft glassy notes from one gentle scale, so nothing ever clashes ----------
+  const STYLES = ['musical', 'soft', 'off'];
+  const STYLE_LABEL = { musical: 'Musical pops', soft: 'Soft pops', off: 'Quiet pops' };
+  const BGS = ['off', 'rain', 'white', 'grey', 'brown', 'box'];
+  const BG_LABEL = { off: 'No background', rain: 'Rain', white: 'White noise', grey: 'Grey noise', brown: 'Brown noise', box: 'Music box' };
+  const SCENE_LABEL = ['Night room', 'Bath time', 'Garden', 'Space'];
+  const RARITY = { rare: 0.045, some: 0.08, often: 0.16 };
+  const settings = { pop: 'musical', bgs: 'off', scene: 0, rarity: 'some', wind: 0, kid: 'show', bgVol: 45 };
+  try { Object.assign(settings, JSON.parse(localStorage.getItem('calm-bubbles') || '{}')); } catch (e) {}
+  if (!STYLES.includes(settings.pop)) settings.pop = 'musical';
+  if (!BGS.includes(settings.bgs)) settings.bgs = 'off';
+  settings.scene = Math.max(0, Math.min(3, Number(settings.scene) || 0));
+  if (!RARITY[settings.rarity]) settings.rarity = 'some';
+  function save() { try { localStorage.setItem('calm-bubbles', JSON.stringify(settings)); } catch (e) {} }
+  let style = settings.pop;
+  let ac = null, out = null, soundOn = style !== 'off', noiseBuf = null, wetGain = null, bgBus = null, boxBus = null, master = null;
+  const SCALE = [0, 2, 4, 7, 9]; // major pentatonic
+  function midiFromIndex(i) { return 57 + Math.floor(i / 5) * 12 + SCALE[((i % 5) + 5) % 5]; }
+  function hz(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+  function noteForRadius(r) {
+    const t = Math.max(0, Math.min(1, (Math.log(r) - Math.log(8)) / (Math.log(220) - Math.log(8))));
+    return Math.round((1 - t) * 14);
+  }
+  function initAudio() {
+    if (ac) return;
+    try {
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      out = ac.createGain();
+      out.gain.value = 0.7;
+      const comp = ac.createDynamicsCompressor();
+      comp.threshold.value = -18;
+      comp.ratio.value = 3;
+      const lp = ac.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 5200;
+      const rev = ac.createConvolver();
+      const len = Math.floor(ac.sampleRate * 2.6);
+      const ir = ac.createBuffer(2, len, ac.sampleRate);
+      for (let c = 0; c < 2; c++) {
+        const ch = ir.getChannelData(c);
+        for (let i = 0; i < len; i++) ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2);
+      }
+      rev.buffer = ir;
+      const wet = ac.createGain();
+      wet.gain.value = style === 'soft' ? 0.16 : 0.42;
+      wetGain = wet;
+      const dry = ac.createGain();
+      dry.gain.value = 0.75;
+      out.connect(lp);
+      lp.connect(dry).connect(comp);
+      lp.connect(rev).connect(wet).connect(comp);
+      master = ac.createGain();
+      master.gain.value = 1;
+      comp.connect(master);
+      master.connect(ac.destination);
+      bgBus = ac.createGain();
+      bgBus.gain.value = (settings.bgVol / 100) * 0.9;
+      bgBus.connect(master);
+      boxBus = ac.createGain();
+      boxBus.gain.value = (settings.bgVol / 100) * 0.9;
+      boxBus.connect(lp);
+      noiseBuf = ac.createBuffer(1, ac.sampleRate * 0.5, ac.sampleRate);
+      const nd = noiseBuf.getChannelData(0);
+      for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+    } catch (e) { ac = null; }
+  }
+  function chime(midi, vol, len, when) {
+    if (!ac || !soundOn) return;
+    const t = (when || ac.currentTime) + 0.005;
+    const f = hz(midi);
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    g.connect(out);
+    const o1 = ac.createOscillator();
+    o1.type = 'sine';
+    o1.frequency.value = f;
+    o1.connect(g);
+    const g2 = ac.createGain();
+    g2.gain.setValueAtTime(0.0001, t);
+    g2.gain.exponentialRampToValueAtTime(vol * 0.22, t + 0.008);
+    g2.gain.exponentialRampToValueAtTime(0.0001, t + len * 0.35);
+    g2.connect(out);
+    const o2 = ac.createOscillator();
+    o2.type = 'sine';
+    o2.frequency.value = f * 2.76;
+    o2.connect(g2);
+    o1.start(t); o2.start(t);
+    o1.stop(t + len + 0.05); o2.stop(t + len + 0.05);
+  }
+  function puff(vol, cutoff) {
+    if (!ac || !soundOn) return;
+    const t = ac.currentTime;
+    const n = ac.createBufferSource();
+    n.buffer = noiseBuf;
+    const lp = ac.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = cutoff;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+    n.connect(lp).connect(g).connect(out);
+    n.start(t, Math.random() * 0.3);
+    n.stop(t + 0.12);
+  }
+  // "Soft pops": small wet plips, closer to real bubbles
+  function plip(r, vol) {
+    if (!ac || !soundOn) return;
+    const t = ac.currentTime + 0.003;
+    const k = Math.max(0.5, Math.min(1.8, 35 / Math.max(r, 8))) * (0.9 + Math.random() * 0.2);
+    const o = ac.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(700 * k, t);
+    o.frequency.exponentialRampToValueAtTime(260 * k, t + 0.035);
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.003);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+    o.connect(g).connect(out);
+    o.start(t);
+    o.stop(t + 0.07);
+    puff(vol * 0.35, 1800 * k);
+  }
+  function lowBloop(r) {
+    if (!ac || !soundOn) return;
+    const t = ac.currentTime + 0.003;
+    const k = Math.max(0.6, Math.min(1.5, 50 / Math.max(r, 10)));
+    const o = ac.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(190 * k, t);
+    o.frequency.exponentialRampToValueAtTime(120 * k, t + 0.12);
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.07, t + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+    o.connect(g).connect(out);
+    o.start(t);
+    o.stop(t + 0.18);
+  }
+  function shimmer(vol) {
+    if (!ac || !soundOn) return;
+    const t = ac.currentTime;
+    const n = ac.createBufferSource();
+    n.buffer = noiseBuf;
+    const hp = ac.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 5000;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+    n.connect(hp).connect(g).connect(out);
+    n.start(t);
+    n.stop(t + 0.5);
+  }
+  function popSound(r, chainStep) {
+    if (style === 'soft') { plip(r, 0.09); return; }
+    const i = noteForRadius(r) + Math.min(chainStep || 0, 10);
+    chime(midiFromIndex(i), 0.16, 0.9 + r / 160);
+    puff(0.05, 1600 + 1200 * (30 / Math.max(r, 10)));
+  }
+  function specialPopSound(r) {
+    if (style === 'soft') { plip(r, 0.08); shimmer(0.05); return; }
+    const i = noteForRadius(r);
+    const t = ac ? ac.currentTime : 0;
+    [0, 2, 4, 5].forEach((s, n) => chime(midiFromIndex(i + s), 0.1 - n * 0.015, 1.4, t + n * 0.07));
+    shimmer(0.035);
+  }
+  function bigBurstSound(r) {
+    if (style === 'soft') { plip(r, 0.11); puff(0.07, 1200); return; }
+    const i = noteForRadius(r);
+    const t = ac ? ac.currentTime : 0;
+    chime(midiFromIndex(i), 0.15, 2.0, t);
+    chime(midiFromIndex(i + 2), 0.1, 1.8, t + 0.05);
+    chime(midiFromIndex(i + 4), 0.08, 1.6, t + 0.1);
+    puff(0.08, 1400);
+  }
+  function mergeSound(r) {
+    if (style === 'soft') { lowBloop(r); return; }
+    const i = noteForRadius(r);
+    const t = ac ? ac.currentTime : 0;
+    chime(midiFromIndex(i), 0.07, 1.1, t);
+    chime(midiFromIndex(i + 2), 0.05, 1.0, t + 0.06);
+  }
+  function blowStepSound(step) {
+    if (style !== 'musical') return;
+    chime(midiFromIndex(5 + step), 0.035, 0.6);
+  }
+  // ---------- background sound: rain, coloured noise, or a slow music box in the same scale ----------
+  const bufCache = {};
+  function noiseBuffer(kind) {
+    if (bufCache[kind]) return bufCache[kind];
+    const sr = ac.sampleRate, len = Math.floor(sr * 8);
+    const buf = ac.createBuffer(1, len, sr);
+    const d = buf.getChannelData(0);
+    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, last = 0;
+    for (let i = 0; i < len; i++) {
+      const w = Math.random() * 2 - 1;
+      if (kind === 'white') { d[i] = w * 0.5; continue; }
+      if (kind === 'brown') { last = (last + 0.02 * w) / 1.02; d[i] = last * 3.2; continue; }
+      b0 = 0.99886 * b0 + w * 0.0555179; b1 = 0.99332 * b1 + w * 0.0750759;
+      b2 = 0.969 * b2 + w * 0.153852; b3 = 0.8665 * b3 + w * 0.3104856;
+      b4 = 0.55 * b4 + w * 0.5329522; b5 = -0.7616 * b5 - w * 0.016898;
+      d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11;
+      b6 = w * 0.115926;
+    }
+    if (kind === 'rain') {
+      // patter: thousands of tiny drops on top of a soft wash
+      for (let i = 0; i < len; i++) d[i] *= 0.55;
+      const drops = Math.floor(8 * 900);
+      for (let k = 0; k < drops; k++) {
+        const at = Math.floor(Math.random() * (len - 600));
+        const amp = Math.pow(Math.random(), 2.5) * 0.5;
+        const dec = 0.002 + Math.random() * 0.006;
+        const n = Math.floor(dec * sr * 4);
+        for (let j = 0; j < n; j++) d[at + j] += (Math.random() * 2 - 1) * amp * Math.exp(-j / (dec * sr));
+      }
+    }
+    // smooth the loop point
+    const fade = Math.floor(sr * 0.05);
+    for (let i = 0; i < fade; i++) { const t = i / fade; d[len - fade + i] = d[len - fade + i] * (1 - t) + d[i] * t; }
+    bufCache[kind] = buf;
+    return buf;
+  }
+  let bgNode = null, boxTimer = null, boxNext = 0, boxIdx = 12, boxCount = 0;
+  function boxNote(i, vol, t) {
+    const f = hz(midiFromIndex(i));
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 2.4);
+    g.connect(boxBus);
+    const o = ac.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = f;
+    o.connect(g);
+    const g2 = ac.createGain();
+    g2.gain.setValueAtTime(0.0001, t);
+    g2.gain.exponentialRampToValueAtTime(vol * 0.18, t + 0.005);
+    g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
+    g2.connect(boxBus);
+    const o2 = ac.createOscillator();
+    o2.type = 'sine';
+    o2.frequency.value = f * 4.07;
+    o2.connect(g2);
+    o.start(t); o2.start(t); o.stop(t + 2.5); o2.stop(t + 0.3);
+  }
+  function boxTick() {
+    if (!ac) return;
+    while (boxNext < ac.currentTime + 0.4) {
+      if (Math.random() < 0.12) { boxNext += 0.9; continue; }
+      boxIdx += [-2, -1, -1, 1, 1, 2, 0][Math.floor(Math.random() * 7)];
+      if (boxIdx < 9) boxIdx = 10;
+      if (boxIdx > 20) boxIdx = 18;
+      boxNote(boxIdx, 0.07, boxNext);
+      if (boxCount % 4 === 0) boxNote(boxIdx - 5, 0.04, boxNext);
+      boxCount++;
+      boxNext += [0.75, 0.75, 1.1, 1.5][Math.floor(Math.random() * 4)];
+    }
+  }
+  function stopBackground() {
+    if (boxTimer) { clearInterval(boxTimer); boxTimer = null; }
+    if (bgNode && ac) {
+      const n = bgNode;
+      const t = ac.currentTime;
+      n.g.gain.cancelScheduledValues(t);
+      n.g.gain.setValueAtTime(n.g.gain.value, t);
+      n.g.gain.linearRampToValueAtTime(0, t + 0.8);
+      setTimeout(() => { try { n.src.stop(); } catch (e) {} }, 900);
+    }
+    bgNode = null;
+  }
+  function startBackground(kind) {
+    stopBackground();
+    if (!ac || kind === 'off') return;
+    if (kind === 'box') {
+      boxNext = ac.currentTime + 0.3;
+      boxTimer = setInterval(boxTick, 150);
+      boxTick();
+      return;
+    }
+    const src = ac.createBufferSource();
+    src.buffer = noiseBuffer(kind === 'grey' ? 'pink' : kind);
+    src.loop = true;
+    let node = src;
+    if (kind === 'grey') {
+      const pk = ac.createBiquadFilter(); pk.type = 'peaking'; pk.frequency.value = 2500; pk.Q.value = 0.8; pk.gain.value = -9;
+      const ls = ac.createBiquadFilter(); ls.type = 'lowshelf'; ls.frequency.value = 160; ls.gain.value = 5;
+      node.connect(pk); pk.connect(ls); node = ls;
+    } else if (kind === 'rain') {
+      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 4200;
+      node.connect(lp); node = lp;
+    } else if (kind === 'white') {
+      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 9000;
+      node.connect(lp); node = lp;
+    }
+    const g = ac.createGain();
+    const level = { rain: 0.5, white: 0.16, grey: 0.45, brown: 0.5 }[kind] || 0.3;
+    g.gain.setValueAtTime(0, ac.currentTime);
+    g.gain.linearRampToValueAtTime(level, ac.currentTime + 1.5);
+    node.connect(g).connect(bgBus);
+    src.start();
+    bgNode = { src, g };
+  }
+
+  function milestoneSound() {
+    if (style !== 'musical') { shimmer(0.04); return; }
+    const t = ac ? ac.currentTime : 0;
+    [10, 12, 14].forEach((s, n) => chime(midiFromIndex(s), 0.06, 1.2, t + n * 0.08));
+  }
+
+  // ---------- haptics (best effort in a browser; full Core Haptics in the iOS build) ----------
+  const hLabel = document.createElement('label');
+  const hInput = document.createElement('input');
+  hInput.type = 'checkbox';
+  hInput.setAttribute('switch', '');
+  hInput.tabIndex = -1;
+  hLabel.appendChild(hInput);
+  hLabel.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none';
+  hLabel.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(hLabel);
+  function haptic(ms) {
+    try {
+      if (navigator.vibrate) navigator.vibrate(ms || 8);
+      else hLabel.click();
+    } catch (e) {}
+  }
+
+  // ---------- bubbles ----------
+  const bubbles = [];
+  let uid = 0;
+  function liveCount() { let n = 0; for (const b of bubbles) if (!b.dead) n++; return n; }
+  function makeBubble(x, y, r, opts) {
+    if (liveCount() >= MAXB) return null;
+    const b = Object.assign({
+      id: ++uid, x, y, vx: 0, vy: 0, r, tr: r, seed: Math.random(),
+      a2: 0, v2: 0, a3: 0, v3: 0, ph: Math.random() * 6.28, wa: Math.random() * 6.28,
+      alpha: 0, held: false, age: 0, dead: false, absorb: null, strain: 0, over: 0,
+      swirl: 0.06 + Math.random() * 0.14, thin0: Math.random() * 0.35, step: 0,
+      kind: 0, inner: null, pvx: 0, pvy: 0
+    }, opts || {});
+    if (b.kind) setKind(b, b.kind);
+    bubbles.push(b);
+    return b;
+  }
+
+  // ---------- special bubbles: rare, found by chance, never required ----------
+  // 1 gold (glitter inside, glitter shower) · 2 rainbow (fireworks) · 3 ruby (confetti)
+  // 4 glow (fireworks) · 5 confetti-filled (confetti burst)
+  const SPECIALS = [
+    { kind: 1, inner: 'glitter', fx: 'glitter', weight: 3 },
+    { kind: 2, inner: null, fx: 'fireworks', weight: 2 },
+    { kind: 3, inner: 'confetti', fx: 'confetti', weight: 2 },
+    { kind: 4, inner: null, fx: 'fireworks', weight: 2 },
+    { kind: 5, inner: 'confetti', fx: 'confetti', weight: 3 },
+    { kind: 6, inner: 'snow', fx: 'snow', weight: 3 },
+    { kind: 7, inner: 'star', fx: 'shoot', weight: 2 },
+    { kind: 8, inner: 'fizz', fx: 'cascade', weight: 2 }
+  ];
+  const CONFETTI = ['#FF8FA3', '#FFD166', '#8FD3FF', '#B5F2A1', '#C9A7FF', '#FFB38A'];
+  function rollSpecial(chance) {
+    if (Math.random() >= chance) return 0;
+    const tot = SPECIALS.reduce((s, x) => s + x.weight, 0);
+    let r = Math.random() * tot;
+    for (const s of SPECIALS) { r -= s.weight; if (r <= 0) return s.kind; }
+    return 1;
+  }
+  function specialOf(b) { return SPECIALS.find(s => s.kind === b.kind) || null; }
+  function setKind(b, kind) {
+    b.kind = kind;
+    const sp = specialOf(b);
+    b.inner = null;
+    if (!sp || !sp.inner) return;
+    const pts = [];
+    if (sp.inner === 'star') {
+      pts.push({ rot: 0 });
+    } else if (sp.inner === 'snow') {
+      for (let i = 0; i < 30; i++) {
+        pts.push({ x: (Math.random() - 0.5) * 1.4, y: (Math.random() - 0.5) * 1.4, vx: 0, vy: 0, rot: 0, vr: 0, s: 0.6 + Math.random() * 0.9 });
+      }
+    } else if (sp.inner === 'glitter' || sp.inner === 'fizz') {
+      for (let i = 0; i < 26; i++) {
+        const a = Math.random() * 6.28, r = Math.sqrt(Math.random()) * 0.8;
+        pts.push({ a, r, w: 0.2 + Math.random() * 0.5, tw: Math.random() * 6.28, s: 0.5 + Math.random() });
+      }
+    } else {
+      for (let i = 0; i < 16; i++) {
+        pts.push({
+          x: (Math.random() - 0.5) * 1.2, y: (Math.random() - 0.5) * 1.2, vx: 0, vy: 0,
+          rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 4, c: CONFETTI[i % CONFETTI.length]
+        });
+      }
+    }
+    b.inner = { type: sp.inner, pts };
+  }
+  function omega(b) { return 11 * Math.sqrt(30 / Math.max(b.r, 12)); }
+  function excite(b, amt, angle) {
+    const om = omega(b);
+    b.v2 += amt * om * (0.7 + Math.random() * 0.6);
+    b.v3 += amt * 0.45 * om * (Math.random() - 0.5) * 2;
+    if (angle !== undefined) b.ph = Math.PI / 2 + 2 * angle;
+  }
+
+  // seed a few, spread out, so the first view is alive
+  for (let tries = 0, made = 0; made < 7 && tries < 80; tries++) {
+    const r = 14 + Math.pow(Math.random(), 1.6) * 60;
+    const x = r + Math.random() * Math.max(10, W - 2 * r), y = H * 0.18 + Math.random() * H * 0.64;
+    if (bubbles.some(o => Math.hypot(o.x - x, o.y - y) < o.r + r + 12)) continue;
+    const b = makeBubble(x, y, r);
+    b.alpha = 1; b.age = 3 + Math.random() * 20;
+    b.vx = (Math.random() - 0.5) * 16; b.vy = (Math.random() - 0.5) * 16;
+    made++;
+  }
+  // one gold bubble waiting at the start, as a hint that special ones exist
+  { const g = bubbles.slice().sort((a, b) => b.r - a.r)[1]; if (g) setKind(g, 1); }
+
+  // ---------- pop effects ----------
+  const drops = [];
+  const rings = [];
+  function pop(b, big, counts) {
+    if (b.dead) return;
+    b.dead = true;
+    const n = Math.round(10 + b.r / 4);
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const sp = 90 + Math.random() * 200 * Math.min(1.8, b.r / 50);
+      drops.push({
+        x: b.x + Math.cos(a) * b.r, y: b.y + Math.sin(a) * b.r,
+        vx: Math.cos(a) * sp + b.vx, vy: Math.sin(a) * sp + b.vy - 40,
+        life: 0, max: 0.45 + Math.random() * 0.45, s: 1 + Math.random() * 2.4
+      });
+    }
+    rings.push({ x: b.x, y: b.y, r: b.r, t: 0, off: Math.random() * 6.28 });
+    const sp = specialOf(b);
+    if (counts) bumpChain();
+    if (sp) { specialBurst(b, sp.fx); specialPopSound(b.r); }
+    if (big) {
+      if (!sp) bigBurstSound(b.r);
+      // a shower of baby bubbles
+      const kids = Math.min(7, MAXB - liveCount());
+      for (let i = 0; i < kids; i++) {
+        const a = Math.random() * 6.28, dist = b.r * (0.2 + Math.random() * 0.6);
+        const k = makeBubble(b.x + Math.cos(a) * dist, b.y + Math.sin(a) * dist, 7 + Math.random() * 14, { age: -0.6, kind: rollSpecial(RARITY[settings.rarity] * 0.6) });
+        if (!k) break;
+        k.vx = Math.cos(a) * (60 + Math.random() * 120);
+        k.vy = Math.sin(a) * (60 + Math.random() * 120) - 30;
+        excite(k, 0.1);
+      }
+    } else if (!sp) {
+      popSound(b.r, counts ? Math.max(0, chain - 1) : 0);
+    }
+  }
+
+  // ---------- celebration effects for special pops ----------
+  const parts = [];
+  const waves = [];
+  function specialBurst(b, fx) {
+    const room = Math.max(0, 420 - parts.length);
+    if (fx === 'snow') {
+      const n = Math.min(room, 80);
+      for (let i = 0; i < n; i++) {
+        parts.push({ k: 'snow', x: b.x + (Math.random() - 0.5) * Math.max(160, b.r * 3.2), y: b.y + (Math.random() - 0.7) * Math.max(120, b.r * 2.4),
+          vx: (Math.random() - 0.5) * 30, vy: 15 + Math.random() * 35, life: 0, max: 3.5 + Math.random() * 2.5,
+          sw: Math.random() * 6.28, s: 1 + Math.random() * 2.2 });
+      }
+      return;
+    }
+    if (fx === 'shoot') {
+      const dir = b.x < W / 2 ? 1 : -1;
+      const a = -Math.PI / 2 + dir * (0.5 + Math.random() * 0.5);
+      parts.push({ k: 'shoot', x: b.x, y: b.y, vx: Math.cos(a) * 620, vy: Math.sin(a) * 620, life: 0, max: 1.5, tr: [] });
+      return;
+    }
+    if (fx === 'cascade') {
+      waves.push({ x: b.x, y: b.y, r: b.r, reach: Math.max(200, b.r * 4), t: 0 });
+      return;
+    }
+    if (fx === 'glitter') {
+      const n = Math.min(room, 70);
+      for (let i = 0; i < n; i++) {
+        const a = Math.random() * 6.28, rr = Math.sqrt(Math.random()) * b.r;
+        parts.push({ k: 'glit', x: b.x + Math.cos(a) * rr, y: b.y + Math.sin(a) * rr,
+          vx: Math.cos(a) * (20 + Math.random() * 90), vy: Math.sin(a) * (20 + Math.random() * 90) - 30,
+          life: 0, max: 1.2 + Math.random() * 1.0, s: 1 + Math.random() * 2, tw: Math.random() * 6.28 });
+      }
+    } else if (fx === 'confetti') {
+      const n = Math.min(room, 46);
+      for (let i = 0; i < n; i++) {
+        const a = Math.random() * 6.28;
+        parts.push({ k: 'conf', x: b.x + Math.cos(a) * b.r * 0.5, y: b.y + Math.sin(a) * b.r * 0.5,
+          vx: Math.cos(a) * (60 + Math.random() * 200), vy: Math.sin(a) * (60 + Math.random() * 160) - 180,
+          life: 0, max: 1.8 + Math.random() * 0.9, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 12,
+          sw: Math.random() * 6.28, c: CONFETTI[i % CONFETTI.length], s: 0.8 + Math.random() * 0.6 });
+      }
+    } else {
+      const bursts = 3;
+      for (let j = 0; j < bursts; j++) {
+        const cx = b.x + (Math.random() - 0.5) * b.r * 1.6, cy = b.y + (Math.random() - 0.5) * b.r * 1.6 - 20;
+        const hue = Math.floor(Math.random() * 360);
+        const n = Math.min(Math.max(0, 420 - parts.length), 26);
+        for (let i = 0; i < n; i++) {
+          const a = (i / n) * 6.28 + Math.random() * 0.2, sp = 110 + Math.random() * 90;
+          parts.push({ k: 'fire', x: cx, y: cy, px: cx, py: cy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+            life: -j * 0.18, max: 0.9 + Math.random() * 0.4, hue: (hue + Math.random() * 40) % 360 });
+        }
+      }
+    }
+  }
+
+  // ---------- pops in a row ----------
+  let chain = 0, lastPop = 0, chainTimer = null;
+  const chainEl = document.getElementById('chain');
+  const chainN = document.getElementById('chainN');
+  function bumpChain() {
+    const now = performance.now();
+    chain = now - lastPop < 1600 ? chain + 1 : 1;
+    lastPop = now;
+    if (chain >= 3) {
+      chainN.textContent = String(chain);
+      chainEl.classList.add('on');
+      chainN.classList.remove('bump');
+      void chainN.offsetWidth;
+      chainN.classList.add('bump');
+      setTimeout(() => chainN.classList.remove('bump'), 160);
+      if (chain % 10 === 0) {
+        milestoneSound();
+        specialBurst({ x: W / 2, y: H - 110, r: 30 }, 'glitter');
+      }
+    }
+    clearTimeout(chainTimer);
+    chainTimer = setTimeout(() => { chainEl.classList.remove('on'); chain = 0; }, 1700);
+  }
+
+  // ---------- input ----------
+  const pointers = new Map();
+  let started = false, hintGone = false, inHome = true, sessionOn = false;
+  function hitTest(x, y) {
+    for (let i = bubbles.length - 1; i >= 0; i--) {
+      const b = bubbles[i];
+      if (b.dead || b.absorb) continue;
+      const dx = x - b.x, dy = y - b.y;
+      if (dx * dx + dy * dy < (b.r * 1.06 + 6) ** 2) return b;
+    }
+    return null;
+  }
+  cv.addEventListener('pointerdown', (e) => {
+    if (!started || winding) return;
+    e.preventDefault();
+    try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+    const x = e.clientX, y = e.clientY, t = performance.now();
+    const hit = hitTest(x, y);
+    const p = { x, y, x0: x, y0: y, t0: t, lx: x, ly: y, lt: t, vx: 0, vy: 0, offx: 0, offy: 0 };
+    if (hit) {
+      p.mode = 'grab';
+      p.b = hit;
+      hit.held = true;
+      p.offx = hit.x - x;
+      p.offy = hit.y - y;
+      excite(hit, 0.06);
+    } else {
+      const kind = rollSpecial(RARITY[settings.rarity]);
+      let b = makeBubble(x, y, 6, { held: true, thin0: 0, kind });
+      if (!b) {
+        // full: gently pop the oldest free bubble to make room, so a new one can always start
+        const old = bubbles.find(o => !o.dead && !o.held && !o.absorb);
+        if (old) { pop(old); b = makeBubble(x, y, 6, { held: true, thin0: 0, kind }); }
+      }
+      if (!b) return;
+      p.mode = 'blow';
+      p.b = b;
+      b.alpha = 1;
+      if (!hintGone) { hintGone = true; document.getElementById('hint').classList.add('gone'); }
+    }
+    haptic(5);
+    pointers.set(e.pointerId, p);
+  });
+  cv.addEventListener('pointermove', (e) => {
+    const p = pointers.get(e.pointerId);
+    if (!p) return;
+    const t = performance.now();
+    const dt = Math.max(1, t - p.lt) / 1000;
+    const nvx = (e.clientX - p.lx) / dt, nvy = (e.clientY - p.ly) / dt;
+    p.vx = p.vx * 0.6 + nvx * 0.4;
+    p.vy = p.vy * 0.6 + nvy * 0.4;
+    p.lx = p.x = e.clientX;
+    p.ly = p.y = e.clientY;
+    p.lt = t;
+  });
+  function endPointer(e) {
+    const p = pointers.get(e.pointerId);
+    if (!p) return;
+    pointers.delete(e.pointerId);
+    const b = p.b;
+    if (!b || b.dead) return;
+    if ([...pointers.values()].some(o => o.b === b)) return;
+    const dur = performance.now() - p.t0;
+    const moved = Math.hypot(p.x - p.x0, p.y - p.y0);
+    const cap = (v) => Math.max(-700, Math.min(700, v));
+    b.held = false;
+    if (p.mode === 'grab') {
+      if (dur < 240 && moved < 12) {
+        pop(b, false, true);
+        haptic(12);
+      } else {
+        b.vx = cap(p.vx) * 0.55;
+        b.vy = cap(p.vy) * 0.55;
+        excite(b, 0.05);
+      }
+    } else {
+      if (dur < 200 && moved < 12) {
+        b.r = b.tr = 14 + Math.random() * 12;
+        excite(b, 0.08);
+        const extra = 2 + Math.floor(Math.random() * 2);
+        for (let i = 0; i < extra; i++) {
+          const a = Math.random() * 6.28;
+          const nb = makeBubble(b.x + Math.cos(a) * 34, b.y + Math.sin(a) * 34, 8 + Math.random() * 11, { age: -0.5, kind: rollSpecial(RARITY[settings.rarity]) });
+          if (!nb) break;
+          nb.vx = Math.cos(a) * 70;
+          nb.vy = Math.sin(a) * 70 - 20;
+        }
+        if (style === 'musical') chime(midiFromIndex(10), 0.05, 0.7); else plip(16, 0.05);
+      } else {
+        b.vx = cap(p.vx) * 0.45;
+        b.vy = cap(p.vy) * 0.45 - 25;
+        excite(b, 0.09);
+      }
+    }
+  }
+  cv.addEventListener('pointerup', endPointer);
+  cv.addEventListener('pointercancel', endPointer);
+
+  // ---------- simulation ----------
+  function step(dt) {
+    const BR = burstR();
+    for (const p of pointers.values()) {
+      const b = p.b;
+      if (!b || b.dead) continue;
+      if (p.mode === 'blow') {
+        // grows faster as it gets bigger, like a real bubble taking air
+        const grow = dt * (26 + b.r * 0.42);
+        b.tr += grow;
+        b.r = b.tr;
+        const s = Math.floor((b.r / BR) * 8);
+        if (s > b.step && s < 8) { b.step = s; blowStepSound(s); }
+        b.x += (p.x - b.x) * Math.min(1, dt * 12);
+        b.y += (p.y - b.y) * Math.min(1, dt * 12);
+        b.v2 += (Math.random() - 0.5) * (1.6 + b.strain * 5) * dt * omega(b);
+        b.v3 += (Math.random() - 0.5) * (1.0 + b.strain * 4) * dt * omega(b);
+      } else {
+        const tx = p.x + p.offx, ty = p.y + p.offy;
+        const sp = Math.hypot(tx - b.x, ty - b.y);
+        b.x += (tx - b.x) * Math.min(1, dt * 16);
+        b.y += (ty - b.y) * Math.min(1, dt * 16);
+        if (sp > 4) b.v2 += Math.min(sp, 60) * 0.04 * omega(b) * dt;
+      }
+      b.vx = 0;
+      b.vy = 0;
+    }
+
+    for (const b of bubbles) {
+      if (b.dead) continue;
+      b.age += dt;
+      if (b.absorb) {
+        const k = b.absorb;
+        if (k.dead) { b.absorb = null; continue; }
+        b.x += (k.x - b.x) * Math.min(1, dt * 16);
+        b.y += (k.y - b.y) * Math.min(1, dt * 16);
+        b.r *= Math.exp(-dt * 13);
+        b.alpha -= dt * 3;
+        if (b.r < 3 || b.alpha <= 0) b.dead = true;
+        continue;
+      }
+      if (!b.held) b.r += (b.tr - b.r) * Math.min(1, dt * 10);
+      else if (b.r < b.tr) b.r += (b.tr - b.r) * Math.min(1, dt * 10);
+
+      // strain builds as a bubble nears its limit; past the limit it trembles, then bursts
+      const ratio = b.r / BR;
+      const targetStrain = Math.max(0, Math.min(1, (ratio - 0.72) / 0.28));
+      b.strain += (targetStrain - b.strain) * Math.min(1, dt * 6);
+      if (ratio >= 1) {
+        b.over += dt;
+        if (b.over > 0.45) { pop(b, true, true); continue; }
+      } else {
+        b.over = Math.max(0, b.over - dt);
+      }
+
+      const om = omega(b), om3 = om * 1.6, z = 0.16;
+      b.v2 += (-om * om * b.a2 - 2 * z * om * b.v2) * dt;
+      b.a2 += b.v2 * dt;
+      b.v3 += (-om3 * om3 * b.a3 - 2 * z * om3 * b.v3) * dt;
+      b.a3 += b.v3 * dt;
+      b.a2 = Math.max(-0.22, Math.min(0.22, b.a2));
+      b.a3 = Math.max(-0.14, Math.min(0.14, b.a3));
+      b.v2 += (Math.random() - 0.5) * 0.25 * dt * om;
+      b.ph += dt * 0.35;
+
+      b.alpha = Math.min(1, b.alpha + dt * 2.5);
+      if (!b.held) {
+        b.wa += (Math.random() - 0.5) * dt * 2.4;
+        const drift = 9 * Math.max(0.35, 1 - b.r / 260);
+        b.vx += Math.cos(b.wa) * drift * dt;
+        const space = settings.scene === 3;
+        b.vy += Math.sin(b.wa) * drift * dt - (space ? 0 : 5) * dt - (winding ? 30 * dt : 0);
+        const damp = Math.exp(-(space ? 0.22 : 0.7) * dt);
+        b.vx *= damp;
+        b.vy *= damp;
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+        const rr = Math.min(b.r, Math.min(W, H) * 0.5);
+        if (b.x - rr < 0) { b.x = rr; if (b.vx < 0) { excite(b, Math.min(0.12, -b.vx / 900), 0); b.vx = -b.vx * 0.45; } }
+        if (b.x + rr > W) { b.x = W - rr; if (b.vx > 0) { excite(b, Math.min(0.12, b.vx / 900), 0); b.vx = -b.vx * 0.45; } }
+        if (winding && b.y + b.r < -10) { b.dead = true; continue; }
+        if (!winding && b.y - rr < 0) { b.y = rr; if (b.vy < 0) { excite(b, Math.min(0.12, -b.vy / 900), Math.PI / 2); b.vy = -b.vy * 0.45; } }
+        if (b.y + rr > H) { b.y = H - rr; if (b.vy > 0) { excite(b, Math.min(0.12, b.vy / 900), Math.PI / 2); b.vy = -b.vy * 0.45; } }
+      }
+    }
+
+    // touching bubbles always join, whatever their size and whether a finger holds one
+    for (let i = 0; i < bubbles.length; i++) {
+      const A = bubbles[i];
+      if (A.dead || A.absorb) continue;
+      for (let j = i + 1; j < bubbles.length; j++) {
+        const B = bubbles[j];
+        if (B.dead || B.absorb || A.dead) continue;
+        if (A.age < 0 || B.age < 0) continue;
+        const dx = B.x - A.x, dy = B.y - A.y;
+        const d = Math.hypot(dx, dy) || 0.001;
+        if (d >= (A.r + B.r) * 0.96) continue;
+        let keep, gone;
+        if (A.held && !B.held) { keep = A; gone = B; }
+        else if (B.held && !A.held) { keep = B; gone = A; }
+        else { keep = A.r >= B.r ? A : B; gone = keep === A ? B : A; }
+        const aK = keep.tr * keep.tr, aG = gone.r * gone.r, tot = aK + aG;
+        if (!keep.held) {
+          keep.x = (keep.x * aK + gone.x * aG) / tot * 0.5 + keep.x * 0.5;
+          keep.y = (keep.y * aK + gone.y * aG) / tot * 0.5 + keep.y * 0.5;
+          keep.vx = (keep.vx * aK + gone.vx * aG) / tot;
+          keep.vy = (keep.vy * aK + gone.vy * aG) / tot;
+        }
+        keep.tr = Math.sqrt(tot);
+        if (keep.held) keep.r = Math.max(keep.r, keep.tr * 0.98);
+        keep.thin0 = Math.min(keep.thin0, gone.thin0);
+        if (gone.kind && !keep.kind) setKind(keep, gone.kind);
+        gone.absorb = keep;
+        for (const p of pointers.values()) {
+          if (p.b === gone) {
+            p.b = keep;
+            p.mode = p.mode === 'blow' ? 'blow' : 'grab';
+            p.offx = keep.x - p.x;
+            p.offy = keep.y - p.y;
+            keep.held = true;
+          }
+        }
+        excite(keep, 0.12 + Math.min(0.08, gone.r / keep.tr * 0.1), Math.atan2(dy, dx));
+        mergeSound(keep.tr);
+      }
+    }
+
+    for (let i = bubbles.length - 1; i >= 0; i--) if (bubbles[i].dead) bubbles.splice(i, 1);
+
+    // what's inside special bubbles: glitter swirls, confetti settles and sloshes as the bubble moves
+    for (const b of bubbles) {
+      if (!b.inner || b.dead) { if (b) { b.px = b.x; b.py = b.y; } continue; }
+      const bvx = b.px === undefined ? 0 : (b.x - b.px) / dt;
+      const bvy = b.py === undefined ? 0 : (b.y - b.py) / dt;
+      const ax = Math.max(-3000, Math.min(3000, bvx - (b.pvx || 0)));
+      const ay = Math.max(-3000, Math.min(3000, bvy - (b.pvy || 0)));
+      b.px = b.x; b.py = b.y; b.pvx = bvx; b.pvy = bvy;
+      const it = b.inner.type;
+      if (it === 'glitter' || it === 'fizz') {
+        const sp = it === 'fizz' ? 3 : 0.6;
+        for (const g of b.inner.pts) { g.a += g.w * dt * sp; g.tw += dt * (2 + g.s * 2) * (it === 'fizz' ? 3 : 1); }
+      } else if (it === 'star') {
+        b.inner.pts[0].rot += dt * 0.6;
+      } else {
+        const R = Math.max(b.r, 8);
+        const snow = it === 'snow';
+        for (const c of b.inner.pts) {
+          c.vx -= ax / R * (snow ? 0.8 : 0.5);
+          c.vy -= ay / R * (snow ? 0.8 : 0.5);
+          c.vy += (snow ? 0.18 : 2.2) * dt;
+          if (snow) { c.vx += (Math.random() - 0.5) * 0.3 * dt; }
+          const damp = Math.exp(-(snow ? 0.9 : 1.6) * dt);
+          c.vx *= damp; c.vy *= damp;
+          c.x += c.vx * dt; c.y += c.vy * dt;
+          const l = Math.hypot(c.x, c.y);
+          if (l > 0.8) {
+            const nx = c.x / l, ny = c.y / l;
+            c.x = nx * 0.8; c.y = ny * 0.8;
+            const vn = c.vx * nx + c.vy * ny;
+            if (vn > 0) { c.vx -= 1.5 * vn * nx; c.vy -= 1.5 * vn * ny; }
+            c.vr *= 0.9;
+          }
+          c.rot += c.vr * dt + c.vx * dt * 2;
+        }
+      }
+    }
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const p = parts[i];
+      p.life += dt;
+      if (p.life < 0) continue;
+      if (p.k === 'snow') {
+        p.sw += dt * 1.6;
+        p.x += (p.vx + Math.sin(p.sw) * 22) * dt;
+        p.y += p.vy * dt;
+        p.vx *= Math.exp(-0.8 * dt);
+        if (p.life > p.max) parts.splice(i, 1);
+        continue;
+      }
+      if (p.k === 'shoot') {
+        p.tr.push({ x: p.x, y: p.y });
+        if (p.tr.length > 18) p.tr.shift();
+        p.vy += 160 * dt;
+        p.x += p.vx * dt; p.y += p.vy * dt;
+        if (parts.length < 420 && Math.random() < 0.8) {
+          parts.push({ k: 'glit', x: p.x, y: p.y, vx: (Math.random() - 0.5) * 50, vy: (Math.random() - 0.5) * 50,
+            life: 0, max: 0.6 + Math.random() * 0.6, s: 0.8 + Math.random() * 1.4, tw: Math.random() * 6.28 });
+        }
+        if (p.life > p.max || p.x < -80 || p.x > W + 80 || p.y < -80) parts.splice(i, 1);
+        continue;
+      }
+      if (p.k === 'glit') {
+        p.vy += 45 * dt; p.vx *= Math.exp(-1.8 * dt); p.vy *= Math.exp(-0.6 * dt);
+        p.tw += dt * 9;
+      } else if (p.k === 'conf') {
+        p.vy += 300 * dt; p.vx *= Math.exp(-2.2 * dt); p.vy *= Math.exp(-1.4 * dt);
+        p.sw += dt * 5; p.x += Math.sin(p.sw) * 30 * dt; p.rot += p.vr * dt;
+      } else {
+        p.px = p.x; p.py = p.y;
+        p.vy += 90 * dt; p.vx *= Math.exp(-1.6 * dt); p.vy *= Math.exp(-1.6 * dt);
+      }
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.life > p.max) parts.splice(i, 1);
+    }
+
+    // fizz waves: a ripple that pops every bubble it reaches, one after another
+    for (let i = waves.length - 1; i >= 0; i--) {
+      const wv = waves[i];
+      wv.t += dt;
+      const wr = wv.r + wv.t * 380;
+      for (const b of bubbles) {
+        if (b.dead || b.absorb || b.held) continue;
+        if (Math.hypot(b.x - wv.x, b.y - wv.y) - b.r < wr) pop(b, false, true);
+      }
+      if (wr > wv.reach) waves.splice(i, 1);
+    }
+
+    for (let i = drops.length - 1; i >= 0; i--) {
+      const d = drops[i];
+      d.life += dt;
+      d.vy += 520 * dt;
+      d.vx *= Math.exp(-1.5 * dt);
+      d.x += d.vx * dt;
+      d.y += d.vy * dt;
+      if (d.life > d.max) drops.splice(i, 1);
+    }
+    for (let i = rings.length - 1; i >= 0; i--) {
+      rings[i].t += dt / (0.2 + Math.min(0.15, rings[i].r / 800));
+      if (rings[i].t >= 1) rings.splice(i, 1);
+    }
+  }
+
+  // ---------- render ----------
+  function render(time) {
+    const s = cv.width / W;
+    let n = 0;
+    for (const b of bubbles) {
+      if (n >= MAXB || b.dead) continue;
+      const o = n * 4;
+      bArr[o] = b.x * s;
+      bArr[o + 1] = (H - b.y) * s;
+      bArr[o + 2] = b.r * s;
+      bArr[o + 3] = b.seed;
+      wArr[o] = b.a2;
+      wArr[o + 1] = b.a3;
+      wArr[o + 2] = b.ph;
+      wArr[o + 3] = Math.max(0, Math.min(1, b.alpha));
+      const ageThin = Math.min(0.55, Math.max(0, b.age) / 120);
+      cArr[o] = Math.min(1, b.thin0 + ageThin + b.strain * 0.45);
+      cArr[o + 1] = b.strain;
+      cArr[o + 2] = b.swirl * (1 + b.strain * 3);
+      cArr[o + 3] = b.kind || 0;
+      n++;
+    }
+    gl.uniform2f(U.res, cv.width, cv.height);
+    gl.uniform1f(U.time, time);
+    gl.uniform1i(U.n, n);
+    gl.uniform4fv(U.b, bArr);
+    gl.uniform4fv(U.w, wArr);
+    gl.uniform4fv(U.c, cArr);
+    gl.uniform1f(U.scene, settings.scene);
+    gl.uniform1f(U.dim, dim);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.lineCap = 'round';
+
+    // insides and twinkles of special bubbles
+    for (const b of bubbles) {
+      if (b.dead || !b.kind) continue;
+      const al = Math.max(0, Math.min(1, b.alpha));
+      if (b.inner) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r * 0.93, 0, Math.PI * 2);
+        ctx.clip();
+        const it = b.inner.type;
+        if (it === 'star') {
+          const rot = b.inner.pts[0].rot, R1 = b.r * 0.32, R2 = R1 * 0.45;
+          const glow = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r * 0.7);
+          glow.addColorStop(0, `rgba(255, 240, 190, ${0.35 * al})`);
+          glow.addColorStop(1, 'rgba(255, 240, 190, 0)');
+          ctx.fillStyle = glow;
+          ctx.fillRect(b.x - b.r, b.y - b.r, b.r * 2, b.r * 2);
+          ctx.beginPath();
+          for (let i = 0; i < 10; i++) {
+            const a = rot - Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? R2 : R1;
+            const x = b.x + Math.cos(a) * rr, y = b.y + Math.sin(a) * rr;
+            if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+          }
+          ctx.closePath();
+          ctx.fillStyle = `rgba(255, 236, 170, ${0.95 * al})`;
+          ctx.fill();
+        } else if (it === 'snow') {
+          for (const c of b.inner.pts) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${0.85 * al})`;
+            ctx.beginPath();
+            ctx.arc(b.x + c.x * b.r, b.y + c.y * b.r, Math.max(1, c.s * Math.min(3, b.r * 0.04)), 0, Math.PI * 2);
+            ctx.fill();
+          }
+        } else if (it === 'glitter' || it === 'fizz') {
+          for (const g of b.inner.pts) {
+            const x = b.x + Math.cos(g.a) * g.r * b.r, y = b.y + Math.sin(g.a) * g.r * b.r;
+            const tw = 0.35 + 0.65 * Math.max(0, Math.sin(g.tw));
+            ctx.fillStyle = it === 'fizz' ? `hsla(195, 95%, ${70 + tw * 25}%, ${0.8 * tw * al})` : `hsla(${42 + g.s * 8}, 95%, ${70 + tw * 20}%, ${0.75 * tw * al})`;
+            ctx.beginPath();
+            ctx.arc(x, y, (0.7 + g.s * 0.9) * (0.6 + tw * 0.5) * Math.min(1.4, b.r / 40 + 0.5), 0, Math.PI * 2);
+            ctx.fill();
+          }
+        } else {
+          const sz = Math.max(2.5, Math.min(7, b.r * 0.09));
+          for (const c of b.inner.pts) {
+            ctx.save();
+            ctx.translate(b.x + c.x * b.r, b.y + c.y * b.r);
+            ctx.rotate(c.rot);
+            ctx.globalAlpha = 0.9 * al;
+            ctx.fillStyle = c.c;
+            ctx.fillRect(-sz * 0.5, -sz * 0.8 * Math.abs(Math.cos(c.rot * 1.7)) - 0.5, sz, sz * 1.6 * Math.abs(Math.cos(c.rot * 1.7)) + 1);
+            ctx.restore();
+          }
+        }
+        ctx.restore();
+      }
+      // three small twinkling stars around the rim so specials are easy to spot
+      for (let i = 0; i < 3; i++) {
+        const t = time * (0.7 + i * 0.23) + b.seed * 10 + i * 2.1;
+        const tw = Math.max(0, Math.sin(t * 2.4));
+        if (tw < 0.05) continue;
+        const a = b.seed * 6.28 + i * 2.1 + time * 0.25;
+        const x = b.x + Math.cos(a) * b.r * 1.08, y = b.y + Math.sin(a) * b.r * 1.08;
+        const s = (3 + Math.min(4, b.r / 18)) * tw;
+        ctx.strokeStyle = `rgba(255, 250, 230, ${0.85 * tw * al})`;
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(x - s, y); ctx.lineTo(x + s, y);
+        ctx.moveTo(x, y - s); ctx.lineTo(x, y + s);
+        ctx.stroke();
+      }
+    }
+
+    // celebration particles
+    for (const p of parts) {
+      if (p.life < 0) continue;
+      const a = Math.max(0, 1 - p.life / p.max);
+      if (p.k === 'snow') {
+        ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, a * 2) * 0.9})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.s, 0, Math.PI * 2);
+        ctx.fill();
+        continue;
+      }
+      if (p.k === 'shoot') {
+        for (let j = 1; j < p.tr.length; j++) {
+          const k = j / p.tr.length;
+          ctx.strokeStyle = `rgba(255, 238, 190, ${k * 0.8 * a})`;
+          ctx.lineWidth = 1 + k * 4;
+          ctx.beginPath();
+          ctx.moveTo(p.tr[j - 1].x, p.tr[j - 1].y);
+          ctx.lineTo(p.tr[j].x, p.tr[j].y);
+          ctx.stroke();
+        }
+        const hg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 16);
+        hg.addColorStop(0, `rgba(255, 250, 230, ${a})`);
+        hg.addColorStop(1, 'rgba(255, 250, 230, 0)');
+        ctx.fillStyle = hg;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 16, 0, Math.PI * 2);
+        ctx.fill();
+        continue;
+      }
+      if (p.k === 'glit') {
+        const tw = 0.4 + 0.6 * Math.max(0, Math.sin(p.tw));
+        ctx.fillStyle = `hsla(45, 95%, ${70 + tw * 22}%, ${a * tw})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.s * (0.6 + tw * 0.6), 0, Math.PI * 2);
+        ctx.fill();
+      } else if (p.k === 'conf') {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.globalAlpha = Math.min(1, a * 1.6);
+        ctx.fillStyle = p.c;
+        const fl = Math.abs(Math.cos(p.rot * 1.3));
+        ctx.fillRect(-4 * p.s, -6 * p.s * fl, 8 * p.s, 12 * p.s * fl + 0.8);
+        ctx.restore();
+      } else {
+        ctx.strokeStyle = `hsla(${p.hue}, 90%, 72%, ${a})`;
+        ctx.lineWidth = 2.2 * a + 0.4;
+        ctx.beginPath();
+        ctx.moveTo(p.px, p.py);
+        ctx.lineTo(p.x + (p.x - p.px) * 2, p.y + (p.y - p.py) * 2);
+        ctx.stroke();
+      }
+    }
+    for (const r of rings) {
+      const k = r.t;
+      const rad = r.r * (1 + 0.28 * k);
+      ctx.lineWidth = 2.4 * (1 - k) + 0.4;
+      for (let i = 0; i < 6; i++) {
+        const a0 = r.off + i * (Math.PI / 3);
+        const hue = (200 + i * 40) % 360;
+        ctx.strokeStyle = `hsla(${hue}, 70%, 82%, ${(1 - k) * (1 - k) * 0.6})`;
+        ctx.beginPath();
+        ctx.arc(r.x, r.y, rad, a0, a0 + Math.PI / 3 * (0.75 - 0.4 * k));
+        ctx.stroke();
+      }
+    }
+    for (const wv of waves) {
+      const wr = wv.r + wv.t * 380;
+      const a = Math.max(0, 1 - wr / wv.reach);
+      ctx.strokeStyle = `rgba(150, 215, 255, ${a * 0.45})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(wv.x, wv.y, wr, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    for (const d of drops) {
+      const a = 1 - d.life / d.max;
+      ctx.fillStyle = `rgba(235, 242, 255, ${a * 0.85})`;
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, d.s * (0.6 + 0.4 * a), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // ---------- loop with adaptive resolution ----------
+  let last = performance.now(), slow = 0, fast = 0;
+  function frame(now) {
+    const raw = (now - last) / 1000;
+    last = now;
+    const dt = Math.min(0.033, Math.max(0.001, raw));
+    if (raw > 0.026) { slow += raw; fast = 0; } else { fast += raw; slow = Math.max(0, slow - raw * 0.5); }
+    if (slow > 1.2 && quality > 0.55) { quality = Math.max(0.55, quality * 0.85); slow = 0; resize(); }
+    if (fast > 6 && quality < 1) { quality = Math.min(1, quality * 1.1); fast = 0; resize(); }
+    if (started && !winding && windAt && Date.now() >= windAt && document.visibilityState === 'visible') beginWindDown();
+    if (winding) {
+      windT += dt;
+      dim = Math.max(0.18, 1 - windT / WIND_LEN * 0.82);
+      if (windT > WIND_LEN && !doneShown) showAllDone();
+    } else if (dim < 1) {
+      dim = Math.min(1, dim + dt * 0.5);
+    }
+    if (!inHome || !sessionOn) {
+      step(dt);
+      render(now / 1000);
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // ---------- controls ----------
+  async function keepAwake() {
+    try { if (navigator.wakeLock) await navigator.wakeLock.request('screen'); } catch (e) {}
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && started) keepAwake();
+  });
+  document.getElementById('start').addEventListener('click', () => {
+    initAudio();
+    if (ac && ac.state === 'suspended') ac.resume();
+    started = true;
+    inHome = false;
+    document.getElementById('home').classList.add('gone');
+    applyView();
+    keepAwake();
+    haptic(8);
+    chime(midiFromIndex(7), 0.08, 1.2);
+    chime(midiFromIndex(9), 0.06, 1.2, ac ? ac.currentTime + 0.12 : 0);
+    if (!sessionOn) { sessionOn = true; startBackground(settings.bgs); armWind(); }
+  });
+  document.getElementById('back').addEventListener('click', () => {
+    started = false;
+    inHome = true;
+    for (const p of pointers.values()) if (p.b) p.b.held = false;
+    pointers.clear();
+    const h = document.getElementById('home');
+    h.classList.remove('gone');
+    applyView();
+    document.getElementById('start').focus();
+  });
+  function applyView() {
+    document.getElementById('kid').hidden = inHome || settings.kid === 'hide';
+    document.getElementById('back').hidden = inHome;
+    document.getElementById('hint').hidden = inHome;
+    document.getElementById('chain').hidden = inHome;
+  }
+
+  // ---------- his buttons: change sounds and scene freely, nothing can go wrong ----------
+  const tip = document.getElementById('tip');
+  let tipTimer = null;
+  function showTip(text) {
+    tip.textContent = text;
+    tip.classList.add('on');
+    clearTimeout(tipTimer);
+    tipTimer = setTimeout(() => tip.classList.remove('on'), 1400);
+  }
+  function wake() { initAudio(); if (ac && ac.state === 'suspended') ac.resume(); }
+  const bPop = document.getElementById('bPop'), bBg = document.getElementById('bBg'), bScene = document.getElementById('bScene');
+  function labelKid() {
+    bPop.setAttribute('aria-label', STYLE_LABEL[style] + '. Tap to change.');
+    bPop.style.opacity = style === 'off' ? '0.6' : '1';
+    bBg.setAttribute('aria-label', BG_LABEL[settings.bgs] + '. Tap to change.');
+    bBg.style.opacity = settings.bgs === 'off' ? '0.6' : '1';
+    bScene.setAttribute('aria-label', 'Scene: ' + SCENE_LABEL[settings.scene] + '. Tap to change.');
+  }
+  labelKid();
+  bPop.addEventListener('click', () => {
+    wake();
+    style = STYLES[(STYLES.indexOf(style) + 1) % STYLES.length];
+    settings.pop = style;
+    soundOn = style !== 'off';
+    if (wetGain) wetGain.gain.value = style === 'soft' ? 0.16 : 0.42;
+    save(); labelKid(); showTip(STYLE_LABEL[style]);
+    popSound(28, 0);
+  });
+  bBg.addEventListener('click', () => {
+    wake();
+    settings.bgs = BGS[(BGS.indexOf(settings.bgs) + 1) % BGS.length];
+    save(); labelKid(); showTip(BG_LABEL[settings.bgs]);
+    if (started) startBackground(settings.bgs);
+  });
+  bScene.addEventListener('click', () => {
+    wake();
+    settings.scene = (settings.scene + 1) % 4;
+    save(); labelKid(); showTip(SCENE_LABEL[settings.scene]);
+    if (style === 'musical') chime(midiFromIndex(8 + settings.scene), 0.05, 1.0);
+  });
+  applyView();
+
+  // ---------- grown-ups: press and hold to open ----------
+  const grown = document.getElementById('grown'), ringArc = document.getElementById('ringArc');
+  const tipLow = document.getElementById('tipLow'), panel = document.getElementById('panel');
+  const HOLD = 2000, CIRC = 138.2;
+  function holdButton(el, onDone, onProgress) {
+    let t0 = 0, raf = 0;
+    function tick() {
+      const k = Math.min(1, (performance.now() - t0) / HOLD);
+      onProgress(k);
+      if (k >= 1) { cancel(); onDone(); return; }
+      raf = requestAnimationFrame(tick);
+    }
+    function cancel() { cancelAnimationFrame(raf); raf = 0; onProgress(0); }
+    el.addEventListener('pointerdown', (e) => { e.preventDefault(); t0 = performance.now(); cancelAnimationFrame(raf); raf = requestAnimationFrame(tick); });
+    el.addEventListener('pointerup', cancel);
+    el.addEventListener('pointerleave', cancel);
+    el.addEventListener('pointercancel', cancel);
+    el.addEventListener('contextmenu', (e) => e.preventDefault());
+    el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onDone(); } });
+  }
+  holdButton(grown, openPanel, (k) => {
+    ringArc.setAttribute('stroke-dashoffset', String(CIRC * (1 - k)));
+    if (k > 0 && k < 1) { tipLow.classList.add('on'); clearTimeout(tipLow._t); tipLow._t = setTimeout(() => tipLow.classList.remove('on'), 1500); }
+  });
+  function markSeg() {
+    panel.querySelectorAll('.seg').forEach((seg) => {
+      const key = seg.dataset.key;
+      seg.querySelectorAll('button').forEach((btn) => btn.setAttribute('aria-pressed', String(String(settings[key]) === btn.dataset.v)));
+    });
+    document.getElementById('bgVol').value = settings.bgVol;
+    document.getElementById('windNote').textContent = settings.wind && windAt
+      ? 'Winding down in about ' + Math.max(1, Math.round((windAt - Date.now()) / 60000)) + ' min. Sound and colour fade slowly, then it says goodnight.'
+      : 'Sound and colour fade slowly, the bubbles drift away, then it says goodnight. No sudden stop.';
+  }
+  function openPanel() { wake(); markSeg(); panel.hidden = false; document.getElementById('panelDone').focus(); }
+  function closePanel() { panel.hidden = true; grown.focus(); }
+  document.getElementById('panelDone').addEventListener('click', closePanel);
+  panel.addEventListener('click', (e) => { if (e.target === panel) closePanel(); });
+  panel.querySelectorAll('.seg').forEach((seg) => {
+    seg.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const key = seg.dataset.key, v = btn.dataset.v;
+      settings[key] = key === 'wind' ? Number(v) : v;
+      if (key === 'kid') applyView();
+      if (key === 'wind') armWind();
+      save(); markSeg();
+    });
+  });
+  document.getElementById('bgVol').addEventListener('input', (e) => {
+    settings.bgVol = Number(e.target.value);
+    const g = (settings.bgVol / 100) * 0.9;
+    if (bgBus) bgBus.gain.value = g;
+    if (boxBus) boxBus.gain.value = g;
+    save();
+  });
+
+  // ---------- wind down ----------
+  let windAt = 0, winding = false, windT = 0, doneShown = false, dim = 1;
+  const WIND_LEN = 30;
+  function armWind() { windAt = settings.wind ? Date.now() + settings.wind * 60000 : 0; }
+  function beginWindDown() {
+    winding = true;
+    windT = 0;
+    windAt = 0;
+    if (ac && master) {
+      const t = ac.currentTime;
+      master.gain.cancelScheduledValues(t);
+      master.gain.setValueAtTime(master.gain.value, t);
+      master.gain.linearRampToValueAtTime(0.0001, t + WIND_LEN);
+    }
+  }
+  function showAllDone() {
+    doneShown = true;
+    stopBackground();
+    const el = document.getElementById('alldone');
+    el.style.opacity = '0';
+    el.hidden = false;
+    requestAnimationFrame(() => { el.style.opacity = '1'; });
+  }
+  const againFill = document.getElementById('againFill');
+  holdButton(document.getElementById('again'), () => {
+    winding = false;
+    doneShown = false;
+    document.getElementById('alldone').hidden = true;
+    if (ac && master) {
+      const t = ac.currentTime;
+      master.gain.cancelScheduledValues(t);
+      master.gain.setValueAtTime(0.0001, t);
+      master.gain.linearRampToValueAtTime(1, t + 1.5);
+    }
+    startBackground(settings.bgs);
+    armWind();
+    for (let i = 0; i < 4; i++) {
+      const r = 18 + Math.random() * 40;
+      const b = makeBubble(r + Math.random() * (W - 2 * r), H + r, r);
+      if (b) { b.vy = -60 - Math.random() * 40; b.alpha = 1; b.age = 1; }
+    }
+  }, (k) => { againFill.style.width = (k * 100) + '%'; });
+})();
+</script>
+
+</body>
+</html>
