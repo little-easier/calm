@@ -287,10 +287,13 @@ body {
   font-size: 12px;
   font-weight: 800;
 }
-.space.sand { background: #6F5B3E; color: #FFF6E6; }
-.space.water { background: #1F4A55; color: #E6FAFF; }
-.space.glow { background: #3A2440; color: #FFEDE6; }
-.space.stars { background: #121A30; color: #F3E9C6; }
+.space.live { height: 150px; display: block; text-decoration: none; background: #07090F; }
+.space.live img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; max-width: none; }
+.space.live .label { text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6); }
+.space.live .label b { font-size: 20px; }
+.space.fidget { background: #1F3F39; color: #E3F7EF; }
+.space.pond { background: #173A40; color: #E2F6F7; }
+.space.squish { background: #4A2440; color: #FFE6F1; }
 .space.soon svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .home .foot { margin: 0; font-size: 13px; font-weight: 600; color: var(--soft); }
 .round.grown, .tip.tipLow, .panel, .alldone { z-index: 30; }
@@ -455,25 +458,24 @@ body {
     </button>
 
     <div class="grid">
-      <div class="space soon sand" role="img" aria-label="Sand, coming soon">
-        <svg viewBox="0 0 160 150" preserveAspectRatio="xMidYMid slice" fill="none" stroke="#8C7550" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M-5 40 C 30 28, 60 52, 95 40 S 150 28, 170 40"></path><path d="M-5 62 C 30 50, 60 74, 95 62 S 150 50, 170 62"></path><path d="M-5 84 C 30 72, 60 96, 95 84 S 150 72, 170 84"></path></svg>
+      <a class="space live glowlive" href="glow.html" aria-label="Glow. Swirl glowing ink through water.">
+        <img src="glow-tile.jpg" alt="" aria-hidden="true">
+        <div class="label"><em>Swirl the ink</em><b>Glow</b></div>
+      </a>
+      <div class="space soon fidget" role="img" aria-label="Fidget, coming soon">
+        <svg viewBox="0 0 160 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect x="26" y="30" width="46" height="24" rx="12" fill="#2E5C52"></rect><circle cx="60" cy="42" r="9" fill="#BFE8DA"></circle><circle cx="104" cy="38" r="9" fill="#2E5C52"></circle><circle cx="126" cy="38" r="9" fill="#BFE8DA"></circle><circle cx="104" cy="62" r="9" fill="#BFE8DA"></circle><circle cx="126" cy="62" r="9" fill="#2E5C52"></circle><rect x="26" y="74" width="46" height="6" rx="3" fill="#2E5C52"></rect><circle cx="40" cy="77" r="8" fill="#BFE8DA"></circle></svg>
         <span class="chip">Soon</span>
-        <div class="label"><b>Sand</b></div>
+        <div class="label"><b>Fidget</b></div>
       </div>
-      <div class="space soon water" role="img" aria-label="Water, coming soon">
-        <svg viewBox="0 0 160 150" preserveAspectRatio="xMidYMid slice" fill="none" stroke="#3E7482" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M-5 50 q 20 -14 40 0 t 40 0 t 40 0 t 40 0 t 40 0"></path><path d="M-5 74 q 20 -14 40 0 t 40 0 t 40 0 t 40 0 t 40 0"></path></svg>
+      <div class="space soon pond" role="img" aria-label="Pond, coming soon">
+        <svg viewBox="0 0 160 150" preserveAspectRatio="xMidYMid slice" fill="none" stroke-linecap="round" aria-hidden="true"><circle cx="96" cy="58" r="12" stroke="#7FC4C9" stroke-width="2.5"></circle><circle cx="96" cy="58" r="26" stroke="#5BA3AA" stroke-width="2.5" opacity="0.8"></circle><circle cx="96" cy="58" r="42" stroke="#3E8189" stroke-width="2.5" opacity="0.6"></circle><path d="M30 46 q 10 -7 20 0 q -10 7 -20 0 z M50 46 l 7 -5 v 10 z" fill="#F2A65A" stroke="none"></path></svg>
         <span class="chip">Soon</span>
-        <div class="label"><b>Water</b></div>
+        <div class="label"><b>Pond</b></div>
       </div>
-      <div class="space soon glow" role="img" aria-label="Glow, coming soon">
-        <svg viewBox="0 0 160 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><ellipse cx="108" cy="52" rx="28" ry="32" fill="#B9705A" opacity="0.8"></ellipse><ellipse cx="72" cy="92" rx="17" ry="15" fill="#A35E52" opacity="0.7"></ellipse></svg>
+      <div class="space soon squish" role="img" aria-label="Squish, coming soon">
+        <svg viewBox="0 0 160 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><path d="M60 70 C 56 40, 92 28, 112 40 C 134 52, 136 80, 116 90 C 96 100, 64 98, 60 70 Z" fill="#F29BC0"></path><ellipse cx="88" cy="50" rx="14" ry="6" fill="#FFD3E6" opacity="0.8"></ellipse></svg>
         <span class="chip">Soon</span>
-        <div class="label"><b>Glow</b></div>
-      </div>
-      <div class="space soon stars" role="img" aria-label="Stars, coming soon">
-        <svg viewBox="0 0 160 150" preserveAspectRatio="xMidYMid slice" fill="#F3E9C6" aria-hidden="true"><circle cx="30" cy="30" r="2"></circle><circle cx="72" cy="22" r="1.5"></circle><circle cx="122" cy="38" r="2.5"></circle><circle cx="96" cy="64" r="1.5"></circle><circle cx="140" cy="76" r="2"></circle><circle cx="50" cy="62" r="2"></circle></svg>
-        <span class="chip">Soon</span>
-        <div class="label"><b>Stars</b></div>
+        <div class="label"><b>Squish</b></div>
       </div>
     </div>
 

@@ -1,6 +1,6 @@
 // Little Easier Calm: keep working with no connection after the first visit.
-const CACHE = 'le-calm-v3';
-const CORE = ['./', 'index.html', 'manifest.webmanifest', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png'];
+const CACHE = 'le-calm-v4';
+const CORE = ['./', 'index.html', 'glow.html', 'glow-tile.jpg', 'manifest.webmanifest', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()));
@@ -24,7 +24,8 @@ self.addEventListener('fetch', (e) => {
   if (!ours) return;
   e.respondWith(
     caches.open(CACHE).then(async (cache) => {
-      const key = req.mode === 'navigate' ? 'index.html' : req;
+      const page = url.pathname.split('/').pop();
+      const key = req.mode === 'navigate' ? (page && page.endsWith('.html') ? page : 'index.html') : req;
       const hit = await cache.match(key);
       const fresh = fetch(req).then((res) => {
         if (res && (res.ok || res.type === 'opaque')) cache.put(key, res.clone());
