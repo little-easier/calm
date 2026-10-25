@@ -82,6 +82,7 @@ body {
   gap: 8px;
 }
 .kid[hidden] { display: none !important; }
+.round[hidden] { display: none !important; }
 .kid .round { position: relative; top: auto; right: auto; }
 .grown {
   top: auto;
@@ -399,7 +400,7 @@ body {
 </div>
 <div class="tip" id="tip">Musical</div>
 
-<button class="round grown" id="grown" type="button" aria-label="Grown-ups settings. Press and hold to open.">
+<button class="round grown" id="grown" type="button" hidden aria-label="Grown-ups settings. Press and hold to open.">
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
   <svg class="ring" width="48" height="48" viewBox="0 0 48 48" aria-hidden="true"><circle id="ringArc" cx="24" cy="24" r="22" fill="none" stroke="#8FC1B5" stroke-width="3" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="138.2" transform="rotate(-90 24 24)"></circle></svg>
 </button>
@@ -479,7 +480,7 @@ body {
       </div>
     </div>
 
-    <p class="foot">Grown-ups: press and hold the lock in the bottom corner for the wind-down timer, volume and more.</p>
+    <p class="foot">Grown-ups: once a play space is open, press and hold the lock in the bottom corner for the wind-down timer, volume and more.</p>
   </div>
 </div>
 
@@ -1855,6 +1856,7 @@ void main(){
   function applyView() {
     document.getElementById('kid').hidden = inHome || settings.kid === 'hide';
     document.getElementById('back').hidden = inHome;
+    document.getElementById('grown').hidden = inHome;
     document.getElementById('hint').hidden = inHome;
     document.getElementById('chain').hidden = inHome;
   }
