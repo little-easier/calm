@@ -1,5 +1,5 @@
 // Little Easier Calm: keep working with no connection after the first visit.
-const CACHE = 'le-calm-v2';
+const CACHE = 'le-calm-v3';
 const CORE = ['./', 'index.html', 'manifest.webmanifest', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', (e) => {
@@ -21,8 +21,7 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   const ours = url.origin === location.origin && url.pathname.startsWith(new URL('./', location).pathname);
-  const fonts = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
-  if (!ours && !fonts) return;
+  if (!ours) return;
   e.respondWith(
     caches.open(CACHE).then(async (cache) => {
       const key = req.mode === 'navigate' ? 'index.html' : req;
