@@ -1,5 +1,5 @@
 // Little Easier Calm: keep working with no connection after the first visit.
-const CACHE = 'le-calm-v6';
+const CACHE = 'le-calm-v8';
 const CORE = ['./', 'index.html', 'glow.html', 'glow-tile.jpg', 'glade.html', 'glade-tile.jpg', 'manifest.webmanifest', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', (e) => {
