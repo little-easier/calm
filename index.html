@@ -411,7 +411,7 @@ body {
       <button type="button" data-v="0">Off</button><button type="button" data-v="5">5 min</button><button type="button" data-v="10">10 min</button><button type="button" data-v="15">15 min</button><button type="button" data-v="20">20 min</button>
     </div><p class="small" id="windNote">Sound and colour fade slowly, the bubbles drift away, then it says goodnight. No sudden stop.</p></div>
     <div class="group"><label for="bgVol"><span style="font-size: 13px; font-weight: 800; color: var(--soft); letter-spacing: 0.3px">Background sound volume</span></label>
-      <input id="bgVol" type="range" min="0" max="100" value="45">
+      <input id="bgVol" type="range" min="0" max="100" value="15">
     </div>
     <div class="group"><span>Sound and scene buttons</span><div class="seg" data-key="kid">
       <button type="button" data-v="show">Show</button><button type="button" data-v="hide">Hide</button>
@@ -744,12 +744,15 @@ void main(){
   const BG_LABEL = { off: 'No background', rain: 'Rain', white: 'White noise', grey: 'Grey noise', brown: 'Brown noise', box: 'Music box' };
   const SCENE_LABEL = ['Night room', 'Bath time', 'Garden', 'Space'];
   const RARITY = { rare: 0.045, some: 0.08, often: 0.16 };
-  const settings = { pop: 'musical', bgs: 'off', scene: 0, rarity: 'some', wind: 0, kid: 'show', bgVol: 45 };
+  const settings = { pop: 'musical', bgs: 'off', scene: 0, rarity: 'some', wind: 0, kid: 'show', bgVol: 15, vol2: 1 };
   try { Object.assign(settings, JSON.parse(localStorage.getItem('calm-bubbles') || '{}')); } catch (e) {}
   if (!STYLES.includes(settings.pop)) settings.pop = 'musical';
   if (!BGS.includes(settings.bgs)) settings.bgs = 'off';
   settings.scene = Math.max(0, Math.min(3, Number(settings.scene) || 0));
   if (!RARITY[settings.rarity]) settings.rarity = 'some';
+  // new quieter volume scale: older saved volumes start again from the gentle default
+  if (settings.vol2 !== 1) { settings.bgVol = 15; settings.vol2 = 1; }
+  const bgGain = (v) => (v / 100) * 0.2;
   function save() { try { localStorage.setItem('calm-bubbles', JSON.stringify(settings)); } catch (e) {} }
   let style = settings.pop;
   let ac = null, out = null, soundOn = style !== 'off', noiseBuf = null, wetGain = null, bgBus = null, boxBus = null, master = null;
@@ -793,10 +796,10 @@ void main(){
       comp.connect(master);
       master.connect(ac.destination);
       bgBus = ac.createGain();
-      bgBus.gain.value = (settings.bgVol / 100) * 0.9;
+      bgBus.gain.value = bgGain(settings.bgVol);
       bgBus.connect(master);
       boxBus = ac.createGain();
-      boxBus.gain.value = (settings.bgVol / 100) * 0.9;
+      boxBus.gain.value = bgGain(settings.bgVol);
       boxBus.connect(lp);
       noiseBuf = ac.createBuffer(1, ac.sampleRate * 0.5, ac.sampleRate);
       const nd = noiseBuf.getChannelData(0);
@@ -1949,7 +1952,7 @@ void main(){
   });
   document.getElementById('bgVol').addEventListener('input', (e) => {
     settings.bgVol = Number(e.target.value);
-    const g = (settings.bgVol / 100) * 0.9;
+    const g = bgGain(settings.bgVol);
     if (bgBus) bgBus.gain.value = g;
     if (boxBus) boxBus.gain.value = g;
     save();
