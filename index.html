@@ -374,6 +374,47 @@ body {
   font-weight: 800;
   cursor: pointer;
 }
+
+/* ---------- iPad / large screens ---------- */
+.spaces { display: flex; flex-direction: column; gap: 14px; }
+@media (min-width: 740px) and (min-height: 600px) {
+  .home-in { max-width: 1120px; gap: 28px; padding-left: max(40px, env(safe-area-inset-left, 0px)); padding-right: max(40px, env(safe-area-inset-right, 0px)); padding-top: calc(env(safe-area-inset-top, 0px) + 32px); }
+  .brand small { font-size: 15px; }
+  .brand span { font-size: 40px; }
+  .home h1 { font-size: 40px; margin-top: 12px; }
+  .homelink { min-height: 52px; font-size: 17px; padding: 0 20px 0 18px; border-radius: 26px; }
+  .spaces { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; }
+  .spaces .grid { gap: 20px; }
+  .space { border-radius: 34px; }
+  .space.feature { height: auto; min-height: 480px; }
+  .space.feature .art { transform: scale(1.6); transform-origin: 100% 0; }
+  .space.live, .space.soon { height: 230px; }
+  .space .label { left: 24px; bottom: 22px; }
+  .space .label b, .space.live .label b, .space.soon .label b { font-size: 28px; }
+  .space .label em { font-size: 15px; }
+  .space.feature .label b { font-size: 40px; }
+  .space.feature .label em { font-size: 17px; }
+  .chip { font-size: 14px; padding: 5px 12px; top: 18px; right: 18px; }
+  .home .foot { font-size: 15px; max-width: 640px; }
+  .panel { align-items: center; padding: 24px; }
+  .sheet { max-width: 560px; border-radius: 32px; padding: 28px; }
+  .card { max-width: 420px; padding: 36px 32px 30px; }
+  .card h1 { font-size: 40px; }
+  .card p { font-size: 18px; }
+  .round { width: 56px; height: 56px; border-radius: 28px; }
+  .mark small { font-size: 14px; }
+  .mark span { font-size: 28px; }
+}
+@media (min-width: 740px) and (min-height: 600px) and (orientation: portrait) {
+  .spaces { grid-template-columns: minmax(0, 1fr); }
+  .space.feature { min-height: 0; height: 34vh; max-height: 460px; }
+  .space.feature .art { transform: scale(1.9); }
+  .space.live, .space.soon { height: 23vh; max-height: 320px; }
+}
+@media (min-width: 1200px) and (min-height: 600px) and (orientation: landscape) {
+  .space.feature { min-height: 540px; }
+  .space.live, .space.soon { height: 260px; }
+}
 .nogl { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; text-align: center; color: var(--soft); }
 </style>
 </head>
@@ -447,6 +488,7 @@ body {
     </div>
     <h1>What feels good today?</h1>
 
+    <div class="spaces">
     <button class="space feature" id="start" type="button" aria-label="Bubbles. Hold to blow, tap to pop.">
       <div class="art" aria-hidden="true">
         <span class="bub" style="width: 120px; height: 120px; right: 34px; top: 22px;"></span>
@@ -476,6 +518,7 @@ body {
         <span class="chip">Soon</span>
         <div class="label"><b>More</b></div>
       </div>
+    </div>
     </div>
 
     <p class="foot">Grown-ups: once a play space is open, press and hold the lock in the bottom corner for the wind-down timer, volume and more.</p>
