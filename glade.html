@@ -423,6 +423,8 @@ function initAudio(){
 }
 function unlock(){initAudio();if(!A)return;try{if(A.state!=='running')A.resume();const b=A.createBuffer(1,1,A.sampleRate),s=A.createBufferSource();s.buffer=b;s.connect(A.destination);s.start(0)}catch(_){}}
 ['pointerdown','touchend','pointerup','click'].forEach(ev=>document.addEventListener(ev,unlock,{capture:true,passive:true}));
+// fade the sound out before leaving, so it doesn't cut off with a click
+document.querySelectorAll('a.back').forEach(a=>a.addEventListener('click',e=>{if(!A||!master)return;e.preventDefault();const to=a.href;try{const t=A.currentTime;master.gain.cancelScheduledValues(t);master.gain.setValueAtTime(master.gain.value,t);master.gain.linearRampToValueAtTime(0,t+.15)}catch(_){}setTimeout(()=>{try{A.suspend()}catch(_){}location.href=to},180)}));
 document.addEventListener('visibilitychange',()=>{if(!A)return;try{document.hidden?A.suspend():A.resume()}catch(_){}});
 const live=()=>A&&A.state==='running'&&soundOn;
 function out(node,wet=1){node.connect(master);if(wet)node.connect(verb)}

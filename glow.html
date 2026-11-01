@@ -96,7 +96,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 <canvas id="fx" aria-hidden="true"></canvas>
 <header class="top"><a class="back" href="./" aria-label="Back to Calm home"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a><div class="kid" id="kid-top">
   <button id="scene-btn" aria-label="Scene: Night tank"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="3"/><path d="M3.5 15l4.5-4 4 3.5 3-2.5 5.5 4.5"/></svg></button>
-  <button id="sound-btn" aria-label="Drag sound: Water"><svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg></button>
+  <button id="sound-btn" aria-label="Drag sound: Chimes"><svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg></button>
 </div></header>
 <p class="hint" id="hint">Drag to swirl the ink. Tap to drop some in.</p>
 <nav class="bar" aria-label="Controls">
@@ -399,7 +399,7 @@ const hint=document.getElementById('hint');
 function buzz(ms){try{navigator.vibrate&&navigator.vibrate(ms)}catch(_){}}
 let actx=null,master=null,whoosh=null,whooshF=null,verb=null,soundOn=true,speedAcc=0,speedS=0;
 let blubAcc=0,humO=null,humO2=null,humG=null,humF=null,grainBuf=null,chimeAcc=0,lastChime=0,rainAcc=0,lastPY=0.5,dragging=false;
-const SOUNDS=[['water','Water'],['chimes','Chimes'],['hum','Hum'],['rain','Rain stick'],['quiet','Quiet']];let soundIdx=0;
+const SOUNDS=[['chimes','Chimes'],['water','Water'],['hum','Hum'],['rain','Rain stick'],['quiet','Quiet']];let soundIdx=0;
 const SCENES=['Night tank','Deep sea','Space','Glass bowl'];
 const NOTES=[293.66,329.63,369.99,440,493.88,587.33,659.25,739.99,880,987.77];
 function ensureAudio(){
