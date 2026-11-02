@@ -425,14 +425,20 @@ function haptic(){
 }
 
 /* ===================================================== layers + ripple sim */
-const FSC = 1, SSC = 1.5, GSC = .5, CELL = 3, Z = .74;
+let FSC = 1, SSC = 1.5; const GSC = .5, CELL = 3, Z = .74;
+let texReady = false; /* textures allocated at the current size; later frames only update them */
 const fcv = document.createElement('canvas'), fctx = fcv.getContext('2d');
 const scv = document.createElement('canvas'), sctx = scv.getContext('2d');
 const gcv = document.createElement('canvas'), gctx = gcv.getContext('2d');
 let W=0, H=0, gw=0, gh=0, cur, prev, bytes, unit=1, damp=.986;
 function resize(){
-  const dpr = Math.min(1.5, window.devicePixelRatio||1);
   W = window.innerWidth; H = window.innerHeight; unit = clamp(Math.min(W,H)/400, .85, 1.35)*Z;
+  /* big screens (iPad) cost far more per frame: keep the water shader and the layers
+     under a pixel budget so it stays smooth; phones keep the full 1.5x */
+  const fit = Math.sqrt(1.25e6/(W*H));
+  const dpr = Math.max(1, Math.min(1.5, window.devicePixelRatio||1, fit));
+  SSC = Math.max(1, Math.min(1.5, fit)); FSC = Math.min(1, Math.max(.8, fit));
+  texReady = false;
   cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr);
   fcv.width = Math.round(W*FSC); fcv.height = Math.round(H*FSC);
   scv.width = Math.round(W*SSC); scv.height = Math.round(H*SSC);
@@ -1516,10 +1522,19 @@ function frame(now){
 
   gctx.setTransform(GSC,0,0,GSC,0,0); drawGlow(gctx, now);
 
-  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tH); gl.texImage2D(gl.TEXTURE_2D,0,gl.LUMINANCE,gw,gh,0,gl.LUMINANCE,gl.UNSIGNED_BYTE,bytes);
-  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, tF); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,fcv);
-  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, tS); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,scv);
-  gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, tG); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,gcv);
+  /* allocate once per size, then update in place (re-allocating 4 textures every frame stalled iPads) */
+  if(!texReady){
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tH); gl.texImage2D(gl.TEXTURE_2D,0,gl.LUMINANCE,gw,gh,0,gl.LUMINANCE,gl.UNSIGNED_BYTE,bytes);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, tF); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,fcv);
+    gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, tS); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,scv);
+    gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, tG); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,gcv);
+    texReady = true;
+  } else {
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tH); gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,gw,gh,gl.LUMINANCE,gl.UNSIGNED_BYTE,bytes);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, tF); gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,gl.RGBA,gl.UNSIGNED_BYTE,fcv);
+    gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, tS); gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,gl.RGBA,gl.UNSIGNED_BYTE,scv);
+    gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, tG); gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,gl.RGBA,gl.UNSIGNED_BYTE,gcv);
+  }
   gl.uniform1f(UN.uT, now/1000); gl.uniform1f(UN.uAsp, W/H); gl.uniform2f(UN.uTexel, 1/gw, 1/gh);
   gl.uniform3fv(UN.uSun, S.sun); gl.uniform3fv(UN.uSkyA, S.skyA); gl.uniform3fv(UN.uSkyB, S.skyB); gl.uniform3fv(UN.uDeep, S.deep);
   gl.uniform3fv(UN.uL, S.ldir); gl.uniform3fv(UN.uSurfL, S.surf); gl.uniform2fv(UN.uGlareP, S.glare);
