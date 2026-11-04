@@ -82,7 +82,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
   <button id="scene-btn" aria-label="Scene: Night"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="3"/><path d="M3.5 15l4.5-4 4 3.5 3-2.5 5.5 4.5"/></svg></button>
 </div></header>
 <p class="hint" id="hint">Tap anywhere for sparkles.<br>Hold still and the butterflies come to you.</p>
-<button class="lock" id="lock" aria-label="Grown-ups: press and hold">
+<button class="lock" id="lock" aria-label="Grown-ups settings">
   <svg class="ic" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
   <svg class="ring" viewBox="0 0 46 46"><circle id="lock-ring" cx="23" cy="23" r="21" stroke-dasharray="132" stroke-dashoffset="132"/></svg>
 </button>
@@ -121,9 +121,10 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
   <button class="again" id="again">Play again
     <svg class="ring" viewBox="0 0 100 52" preserveAspectRatio="none"><rect id="again-ring" x="1.5" y="1.5" width="97" height="49" rx="24.5" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/></svg>
   </button>
-  <small>Press and hold</small>
+  <small>For grown-ups</small>
 </div>
 
+<script src="gate.js"></script>
 <script>
 (()=>{
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
@@ -539,7 +540,9 @@ function holdable(el,ms,setP,onDone,onTap){
   el.addEventListener('click',e=>e.preventDefault());
 }
 const lockRing=document.getElementById('lock-ring'),grown=document.getElementById('grown'),kidTop=document.getElementById('kid-top');
-holdable(document.getElementById('lock'),2000,p=>lockRing.setAttribute('stroke-dashoffset',132*(1-p)),()=>{grown.hidden=false;buzz(15)},()=>toast('Grown-ups: press and hold'));
+/* grown-ups: tap, then the grown-up check */
+document.getElementById('lock').addEventListener('pointerdown',e=>e.stopPropagation());
+document.getElementById('lock').addEventListener('click',e=>{e.preventDefault();LEGate.ask(()=>{grown.hidden=false;buzz(15)})});
 document.getElementById('g-close').addEventListener('click',()=>{grown.hidden=true});
 function setSeg(id,v){document.querySelectorAll('#'+id+' button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===String(v)?'true':'false'))}
 function save(){try{localStorage.setItem('le-glade',JSON.stringify({windMin,vol,nButter,ambOn,rare,spark,kid:kidTop.hidden?'hide':'show'}))}catch(_){}}
@@ -556,9 +559,11 @@ try{const s=JSON.parse(localStorage.getItem('le-glade')||'{}');if(s.windMin)wind
 try{const pk=JSON.parse(localStorage.getItem('le-glade-picks')||'{}');if(pk.dust!=null)dustIdx=pk.dust%DUST.length;if(typeof pk.sound==='number')soundIdx=pk.sound%SOUNDS.length;else if(pk.sound===false)soundIdx=3;if(pk.scene!=null)sceneIdx=pk.scene%SCN.length}catch(_){}
 setDust(dustIdx);setSound(soundIdx);setScene(sceneIdx);setSeg('rare',rare);setSeg('spk',spark);setSeg('wind',windMin);setSeg('bf',nButter);setSeg('amb',ambOn?'on':'off');setSeg('kid',kidTop.hidden?'hide':'show');windNote();
 const doneEl=document.getElementById('done'),againRing=document.getElementById('again-ring');
-holdable(document.getElementById('again'),2000,p=>againRing.setAttribute('stroke-dashoffset',100*(1-p)),()=>{
+document.getElementById('again').addEventListener('pointerdown',e=>e.stopPropagation());
+document.getElementById('again').addEventListener('click',e=>{e.preventDefault();LEGate.ask(playAgain)});
+function playAgain(){
   state='play';doneEl.hidden=true;dimVal=1;windGain=1;windK=0;applyGain();windStart=performance.now();
-  for(const b of butterflies)b.sat=false;for(const f of flowers)f.target=.3;buzz(15)},()=>{});
+  for(const b of butterflies)b.sat=false;for(const f of flowers)f.target=.3;buzz(15)}
 function windFrame(now){
   if(state==='play'&&windMin&&now-windStart>windMin*60000){state='winding';wStart=now;grown.hidden=true;ptrs.clear()}
   if(state==='winding'){const k=Math.min(1,(now-wStart)/30000);windK=k;dimVal=1-sm(k,.6,1);windGain=1-k;applyGain();if(k>=1){state='done';doneEl.hidden=false}}

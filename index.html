@@ -441,11 +441,11 @@ body {
 </div>
 <div class="tip" id="tip">Musical</div>
 
-<button class="round grown" id="grown" type="button" hidden aria-label="Grown-ups settings. Press and hold to open.">
+<button class="round grown" id="grown" type="button" hidden aria-label="Grown-ups settings">
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
   <svg class="ring" width="48" height="48" viewBox="0 0 48 48" aria-hidden="true"><circle id="ringArc" cx="24" cy="24" r="22" fill="none" stroke="#8FC1B5" stroke-width="3" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="138.2" transform="rotate(-90 24 24)"></circle></svg>
 </button>
-<div class="tip tipLow" id="tipLow">Grown-ups: press and hold</div>
+<div class="tip tipLow" id="tipLow">For grown-ups</div>
 
 <div class="panel" id="panel" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="panelTitle">
@@ -470,7 +470,7 @@ body {
     <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#F1DDA4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"></path></svg>
     <h1>All done</h1>
     <p>The bubbles have floated off to sleep.</p>
-    <button class="again" id="again" type="button" aria-label="Press and hold to play again"><i id="againFill"></i><span>Hold to play again</span></button>
+    <button class="again" id="again" type="button" aria-label="Grown-ups: play again"><i id="againFill"></i><span>Grown-ups: play again</span></button>
   </div>
 </div>
 
@@ -521,10 +521,11 @@ body {
     </div>
     </div>
 
-    <p class="foot">Grown-ups: once a play space is open, press and hold the lock in the bottom corner for the wind-down timer, volume and more.</p>
+    <p class="foot">Grown-ups: once a play space is open, tap the lock in the bottom corner for the wind-down timer, volume and more.</p>
   </div>
 </div>
 
+<script src="gate.js"></script>
 <script>
 (() => {
   const cv = document.getElementById('scene');
@@ -1944,7 +1945,7 @@ void main(){
   });
   applyView();
 
-  // ---------- grown-ups: press and hold to open ----------
+  // ---------- grown-ups: tap, then the grown-up check ----------
   const grown = document.getElementById('grown'), ringArc = document.getElementById('ringArc');
   const tipLow = document.getElementById('tipLow'), panel = document.getElementById('panel');
   const HOLD = 2000, CIRC = 138.2;
@@ -1964,10 +1965,9 @@ void main(){
     el.addEventListener('contextmenu', (e) => e.preventDefault());
     el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onDone(); } });
   }
-  holdButton(grown, openPanel, (k) => {
-    ringArc.setAttribute('stroke-dashoffset', String(CIRC * (1 - k)));
-    if (k > 0 && k < 1) { tipLow.classList.add('on'); clearTimeout(tipLow._t); tipLow._t = setTimeout(() => tipLow.classList.remove('on'), 1500); }
-  });
+  // grown-ups: tap, then the grown-up check (a number written in words)
+  grown.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); LEGate.ask(openPanel); });
+  grown.addEventListener('pointerdown', (e) => e.stopPropagation());
   function markSeg() {
     panel.querySelectorAll('.seg').forEach((seg) => {
       const key = seg.dataset.key;
@@ -2025,7 +2025,11 @@ void main(){
     requestAnimationFrame(() => { el.style.opacity = '1'; });
   }
   const againFill = document.getElementById('againFill');
-  holdButton(document.getElementById('again'), () => {
+  // play again after the wind-down: a grown-up's choice
+  const againBtnEl = document.getElementById('again');
+  againBtnEl.addEventListener('pointerdown', (e) => e.stopPropagation());
+  againBtnEl.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); LEGate.ask(playAgain); });
+  function playAgain() {
     winding = false;
     doneShown = false;
     document.getElementById('alldone').hidden = true;
@@ -2042,7 +2046,7 @@ void main(){
       const b = makeBubble(r + Math.random() * (W - 2 * r), H + r, r);
       if (b) { b.vy = -60 - Math.random() * 40; b.alpha = 1; b.age = 1; }
     }
-  }, (k) => { againFill.style.width = (k * 100) + '%'; });
+  }
 })();
 </script>
 

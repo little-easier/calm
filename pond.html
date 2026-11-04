@@ -143,7 +143,7 @@ input[type=range]{width:100%; accent-color:#8FC1B5; height:28px}
 </header>
 
 <div class="bottom">
-<button class="ib grown" id="grownBtn" aria-label="Grown-ups settings. Press and hold to open."><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+<button class="ib grown" id="grownBtn" aria-label="Grown-ups settings"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
   <svg class="ring" viewBox="0 0 48 48"><circle id="ringArc" cx="24" cy="24" r="22" fill="none" stroke="#8FC1B5" stroke-width="3" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="138.2" transform="rotate(-90 24 24)"/></svg></button>
 <nav class="tray" aria-label="Tools">
   <button class="tool" data-tool="hand" aria-label="Hand" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M8 12.5V6.2a1.4 1.4 0 0 1 2.8 0v5.3M10.8 11V4.6a1.4 1.4 0 0 1 2.8 0V11M13.6 11V5.8a1.4 1.4 0 0 1 2.8 0v6.4M16.4 10.5a1.4 1.4 0 0 1 2.8 0V14a6.5 6.5 0 0 1-6.5 6.5h-.9a6 6 0 0 1-5-2.7l-2.6-4a1.45 1.45 0 0 1 2.4-1.6L8 14"/></svg></button>
@@ -154,7 +154,7 @@ input[type=range]{width:100%; accent-color:#8FC1B5; height:28px}
   <button class="tool" data-tool="petals" aria-label="Petals" aria-pressed="false"><svg viewBox="0 0 24 24" id="petalIcon"><path d="M12 3.5c3 2.5 3.4 6.2 0 9.5-3.4-3.3-3-7 0-9.5z"/><path d="M12 13c4.6-1.6 7.6.2 8.5 3.6-3.8 1.4-7 .1-8.5-3.6z"/><path d="M12 13c-4.6-1.6-7.6.2-8.5 3.6 3.8 1.4 7 .1 8.5-3.6z"/></svg></button>
 </nav>
 </div>
-<div class="tip" id="tip">Grown-ups: press and hold</div>
+<div class="tip" id="tip">For grown-ups</div>
 
 <div class="panel" id="panel" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="panelTitle">
@@ -180,10 +180,11 @@ input[type=range]{width:100%; accent-color:#8FC1B5; height:28px}
 <div class="toast" id="toast" aria-live="polite"></div>
 <div class="hint" id="hint">Pick something from the tray, then touch the water.</div>
 <div class="end" id="end"><div><div class="moon"></div><p>Goodnight, pond.</p><small>The koi are resting under the lily pads.</small>
-<button class="done" id="againBtn" aria-label="Play again. Press and hold.">Hold to play again<svg id="againRing" viewBox="0 0 100 40" preserveAspectRatio="none"><rect x="2" y="2" width="96" height="36" rx="18" fill="none" stroke="#8FC1B5" stroke-width="3" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" id="againArc"/></svg></button></div></div>
+<button class="done" id="againBtn" aria-label="Grown-ups: play again">Grown-ups: play again<svg id="againRing" viewBox="0 0 100 40" preserveAspectRatio="none"><rect x="2" y="2" width="96" height="36" rx="18" fill="none" stroke="#8FC1B5" stroke-width="3" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" id="againArc"/></svg></button></div></div>
 <div class="nogl" id="nogl" hidden>This pond needs WebGL, which this browser has turned off.</div>
 <label class="hap" aria-hidden="true"><input type="checkbox" switch tabindex="-1" id="hapIn"></label>
 
+<script src="gate.js"></script>
 <script>
 (()=>{
 const cv = document.getElementById('gl');
@@ -365,15 +366,15 @@ rainBtn.addEventListener('click', ()=>{ settings.rain = settings.rain==='on'?'of
 sceneBtn.addEventListener('click', ()=>{ settings.scene = SCENE_ORDER[(SCENE_ORDER.indexOf(settings.scene)+1)%SCENE_ORDER.length]; paint(); save(); refreshLoops(); restyleAmbient(); toast(SCENE_NAME[settings.scene]); haptic(); });
 soundBtn.addEventListener('click', ()=>{ settings.style = STYLE_ORDER[(STYLE_ORDER.indexOf(settings.style)+1)%STYLE_ORDER.length]; paint(); save();
   audioOn(); if(settings.style!=='quiet') chord([0,2,4], .07); toast(STYLE_NAME[settings.style]); haptic(); });
-// grown-ups: press and hold for 2 seconds while the ring fills
+// grown-ups: the grown-up check (gate.js)
 const ringArc = $('ringArc'); let holdRaf = 0, holdStart = 0, holdDone = false;
 function holdTick(){ const p = Math.min(1, (performance.now()-holdStart)/2000); ringArc.setAttribute('stroke-dashoffset', 138.2*(1-p));
   if(p>=1){ holdDone = true; cancelHold(); openPanel(true); haptic(); } else holdRaf = requestAnimationFrame(holdTick); }
 function cancelHold(){ cancelAnimationFrame(holdRaf); ringArc.setAttribute('stroke-dashoffset', 138.2); }
-grownBtn.addEventListener('pointerdown', ()=>{ holdDone = false; holdStart = performance.now(); holdRaf = requestAnimationFrame(holdTick); });
-['pointerup','pointerleave','pointercancel'].forEach(ev=>grownBtn.addEventListener(ev, cancelHold));
+// grown-ups: tap, then the grown-up check (a number written in words)
+grownBtn.addEventListener('click', e=>{ e.preventDefault(); LEGate.ask(()=>{ openPanel(true); haptic(); }); });
 let tipT = 0;
-grownBtn.addEventListener('click', ()=>{ if(holdDone) return; tipEl.classList.add('show'); clearTimeout(tipT); tipT = setTimeout(()=>tipEl.classList.remove('show'), 1600); });
+
 function openPanel(o){ panel.hidden = !o; updateTimerNote(); }
 $('doneBtn').addEventListener('click', ()=>openPanel(false));
 panel.addEventListener('pointerdown', e=>{ e.stopPropagation(); if(e.target===panel) openPanel(false); });
@@ -1470,8 +1471,9 @@ function againTick(){ const p = Math.min(1, (performance.now()-againStart)/2000)
   if(p>=1){ cancelAgain(); endEl.classList.remove('show'); endStart = 0; ending = 0; damp = .986; fade = 1; applyVolume(); pads.forEach(pd=>{ if(pd.flower) pd.bloomT = 1; }); startTimer(); haptic(); }
   else againRaf = requestAnimationFrame(againTick); }
 function cancelAgain(){ cancelAnimationFrame(againRaf); againArc.setAttribute('stroke-dashoffset', 100); }
-againBtn.addEventListener('pointerdown', e=>{ e.stopPropagation(); againStart = performance.now(); againRaf = requestAnimationFrame(againTick); });
-['pointerup','pointerleave','pointercancel'].forEach(ev=>againBtn.addEventListener(ev, cancelAgain));
+againBtn.addEventListener('pointerdown', e=>e.stopPropagation());
+againBtn.addEventListener('click', e=>{ e.preventDefault(); LEGate.ask(playAgain); });
+function playAgain(){ endEl.classList.remove('show'); endStart = 0; ending = 0; damp = .986; fade = 1; applyVolume(); pads.forEach(pd=>{ if(pd.flower) pd.bloomT = 1; }); startTimer(); haptic(); }
 
 /* ===================================================== loop */
 resize();
