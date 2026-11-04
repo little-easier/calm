@@ -275,6 +275,9 @@ body {
 .bub.gloss { -webkit-mask: none; mask: none; background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.8) 0 7%, rgba(255,255,255,0) 15%); }
 @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+/* in the iOS app: no "coming soon" tile (App Store apps shouldn't show unfinished features); Pond takes the full row */
+html.in-app .space.soon { display: none; }
+html.in-app .grid > .pondlive { grid-column: 1 / -1; }
 .space.soon { height: 150px; cursor: default; }
 .space.soon .label b { font-size: 20px; }
 .chip {
