@@ -2050,6 +2050,10 @@ void main(){
       if (b) { b.vy = -60 - Math.random() * 40; b.alpha = 1; b.age = 1; }
     }
   }
+  // screenshots and videos only: index.html?demo exposes a few helpers (never used in normal play)
+  if (/[?&]demo\b/.test(location.search)) {
+    window.__calm = { makeBubble, setKind, pop, specialBurst, specialOf, bubbles, SPECIALS, size: () => ({ W, H }) };
+  }
 })();
 </script>
 
