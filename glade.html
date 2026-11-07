@@ -10,9 +10,9 @@
 <meta name="theme-color" content="#060914">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<title>Calm · Glade</title>
+<title>Calm Spaces · Glade</title>
 <style>
-/* Layout: full-bleed night-forest canvas; wordmark and two round buttons float at the top, grown-ups lock bottom-left. */
+/* Layout: full-bleed night-forest canvas; wordmark and two round buttons float at the top, grown-ups "•••" top-right. */
 :root{
   --night:#060914;
   --ink:#EEF0FA;
@@ -71,21 +71,22 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 .again .ring{inset:-4px;width:calc(100% + 8px);height:calc(100% + 8px);transform:none}
 .again .ring rect{fill:none;stroke:var(--glow);stroke-width:3}
 @media (prefers-reduced-motion:reduce){.done{animation:none}}
+
+/* grown-ups "•••": top-right corner, like Doodle Deep; outside #kid-top so hiding the buttons never hides it */
+.tr{display:flex;gap:8px;align-items:center;pointer-events:auto}
+.top .lock{position:relative;left:auto;bottom:auto;width:42px;height:42px;color:var(--ink);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.top .lock svg.ic{width:20px;height:20px;fill:currentColor;stroke:none}
 </style>
 </head>
 <body>
 
 <canvas id="c" aria-label="A glowing night forest. Tap for sparkles, hold still and butterflies come to you."></canvas>
-<header class="top"><a class="back" href="./" aria-label="Back to Calm home"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a><div class="kid" id="kid-top">
+<header class="top"><a class="back" href="./" aria-label="Back to Calm home"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a><div class="tr"><div class="kid" id="kid-top">
   <button id="dust-btn" aria-label="Sparkle colour: Rainbow"><span id="dust-dot"></span></button>
-  <button id="sound-btn" aria-label="Tap sound: Chimes"><svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg></button>
   <button id="scene-btn" aria-label="Scene: Night"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="3"/><path d="M3.5 15l4.5-4 4 3.5 3-2.5 5.5 4.5"/></svg></button>
-</div></header>
+  <button id="sound-btn" aria-label="Tap sound: Chimes"><svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg></button>
+</div><button class="lock" id="lock" aria-label="For grown-ups"><svg class="ic" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="18.5" cy="12" r="2"/></svg><svg class="ring" viewBox="0 0 46 46"><circle id="lock-ring" cx="23" cy="23" r="21" stroke-dasharray="132" stroke-dashoffset="132"/></svg></button></div></header>
 <p class="hint" id="hint">Tap anywhere for sparkles.<br>Hold still and the butterflies come to you.</p>
-<button class="lock" id="lock" aria-label="Grown-ups settings">
-  <svg class="ic" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
-  <svg class="ring" viewBox="0 0 46 46"><circle id="lock-ring" cx="23" cy="23" r="21" stroke-dasharray="132" stroke-dashoffset="132"/></svg>
-</button>
 <p class="toast" id="toast" role="status"></p>
 <div class="sheet" id="grown" role="dialog" aria-label="Grown-ups" hidden>
   <h2>Grown-ups</h2>
@@ -524,11 +525,11 @@ function setDust(k){dustIdx=k;dustDot.style.background=DUST[k].css;dustBtn.setAt
 function setSound(k){soundIdx=k;soundOn=SOUNDS[k]!=='Quiet';soundBtn.style.opacity=soundOn?1:.55;soundBtn.setAttribute('aria-label','Tap sound: '+SOUNDS[k]);applyGain()}
 function setScene(k){sceneIdx=k;sceneBtn.setAttribute('aria-label','Scene: '+SCN[k].n);if(W)buildLayers()}
 function savePicks(){try{localStorage.setItem('le-glade-picks',JSON.stringify({dust:dustIdx,sound:soundIdx,scene:sceneIdx}))}catch(_){}}
-dustBtn.addEventListener('click',()=>{setDust((dustIdx+1)%DUST.length);toast(DUST[dustIdx].n);buzz(8);savePicks();
+dustBtn.addEventListener('click',()=>{setDust((dustIdx+1)%DUST.length);toast('Sparkles: '+DUST[dustIdx].n);buzz(8);savePicks();
   const b=dustBtn.getBoundingClientRect();for(let i=0;i<14;i++)trail(b.left+b.width/2,b.top+b.height+8)});
-soundBtn.addEventListener('click',()=>{setSound((soundIdx+1)%SOUNDS.length);toast(soundOn?'Sound: '+SOUNDS[soundIdx]:'Quiet');buzz(8);savePicks();
+soundBtn.addEventListener('click',()=>{setSound((soundIdx+1)%SOUNDS.length);toast(soundOn?'Sound: '+SOUNDS[soundIdx]:'Sound: Quiet');buzz(8);savePicks();
   if(soundOn&&A){const t=A.currentTime+.01;[2,4,6].forEach((k,i)=>bell(NOTES[k],.04,t+i*.09))}});
-sceneBtn.addEventListener('click',()=>{setScene((sceneIdx+1)%SCN.length);toast(SCN[sceneIdx].n);buzz(8);savePicks()});
+sceneBtn.addEventListener('click',()=>{setScene((sceneIdx+1)%SCN.length);toast('Scene: '+SCN[sceneIdx].n);buzz(8);savePicks()});
 
 let dimVal=1,windMin=0,windStart=performance.now(),wStart=0;
 function holdable(el,ms,setP,onDone,onTap){

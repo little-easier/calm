@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#0F1528">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<title>Calm</title>
+<title>Calm Spaces</title>
 <style>
 /* Layout: one full-bleed WebGL scene, two tiny floating controls, a start card on first load. Deliberately single dark look (a dim room for sensory play). */
 :root {
@@ -84,16 +84,11 @@ body {
 .kid[hidden] { display: none !important; }
 .round[hidden] { display: none !important; }
 .kid .round { position: relative; top: auto; right: auto; }
-.grown {
-  top: auto;
-  right: auto;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
-  left: calc(env(safe-area-inset-left, 0px) + 16px);
-  opacity: 0.55;
-}
-.grown:hover, .grown:focus-visible { opacity: 1; }
+/* grown-ups "•••" sits in the top-right corner (same place as Doodle Deep); the kid buttons sit just left of it.
+   It's outside .kid, so "hide the buttons" never hides it. */
+.kid { right: calc(env(safe-area-inset-right, 0px) + 16px + 48px + 8px); }
 .round svg.ring { position: absolute; inset: 0; pointer-events: none; }
-.tip.tipLow { top: auto; right: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 74px); left: calc(env(safe-area-inset-left, 0px) + 16px); }
+.tip.tipLow { display: none; }
 .round { touch-action: none; }
 .tip {
   position: fixed;
@@ -293,7 +288,11 @@ html.in-app .grid > .pondlive { grid-column: 1 / -1; }
 }
 .space.live { height: 150px; display: block; text-decoration: none; background: #07090F; }
 .space.live img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; max-width: none; }
-.space.live .label { text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6); }
+/* soft fade behind the label so it reads over bright art (Glade's mushroom, Glow's ink) */
+.space.live::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 65%; pointer-events: none;
+  background: linear-gradient(to bottom, rgba(8, 12, 26, 0), rgba(8, 12, 26, 0.45) 45%, rgba(8, 12, 26, 0.78)); }
+.space.live .label { z-index: 1; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55), 0 1px 12px rgba(0, 0, 0, 0.6); }
+.space.live .label em { opacity: 1; }
 .space.live .label b { font-size: 20px; }
 .space.fidget { background: #1F3F39; color: #E3F7EF; }
 .space.pond { background: #173A40; color: #E2F6F7; }
@@ -432,20 +431,20 @@ html.in-app .grid > .pondlive { grid-column: 1 / -1; }
 </button>
 
 <div class="kid" id="kid">
-  <button class="round" id="bPop" type="button" aria-label="Pop sounds: Musical. Tap to change.">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l11-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="17" cy="16" r="3"></circle></svg>
-  </button>
-  <button class="round" id="bBg" type="button" aria-label="Background sound: Off. Tap to change.">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 14a4 4 0 0 1-.6-7.96A6 6 0 0 1 18 7a4 4 0 0 1 0 8"></path><path d="M8 18l-1 2M12 18l-1 2M16 18l-1 2"></path></svg>
-  </button>
   <button class="round" id="bScene" type="button" aria-label="Scene: Night room. Tap to change.">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"></rect><path d="M3 16l5-5 4 4 3-3 6 6"></path><circle cx="16" cy="9" r="1.5"></circle></svg>
+  </button>
+  <button class="round" id="bBg" type="button" aria-label="Background sound: Off. Tap to change.">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9c2 0 2-2 4.5-2S10 9 12 9s2-2 4.5-2S19 9 21 9"></path><path d="M3 15c2 0 2-2 4.5-2s2.5 2 4.5 2 2-2 4.5-2 2.5 2 4.5 2"></path></svg>
+  </button>
+  <button class="round" id="bPop" type="button" aria-label="Pop sounds: Musical. Tap to change.">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l11-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="17" cy="16" r="3"></circle></svg>
   </button>
 </div>
 <div class="tip" id="tip">Musical</div>
 
-<button class="round grown" id="grown" type="button" hidden aria-label="Grown-ups settings">
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
+<button class="round grown" id="grown" type="button" hidden aria-label="For grown-ups">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><circle cx="5.5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="18.5" cy="12" r="2"></circle></svg>
   <svg class="ring" width="48" height="48" viewBox="0 0 48 48" aria-hidden="true"><circle id="ringArc" cx="24" cy="24" r="22" fill="none" stroke="#8FC1B5" stroke-width="3" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="138.2" transform="rotate(-90 24 24)"></circle></svg>
 </button>
 <div class="tip tipLow" id="tipLow">For grown-ups</div>
@@ -483,7 +482,7 @@ html.in-app .grid > .pondlive { grid-column: 1 / -1; }
 <div class="home" id="home">
   <div class="home-in">
     <div class="toprow">
-      <div class="brand"><small>little easier</small><span>Calm</span></div>
+      <div class="brand"><small>little easier</small><span>Calm Spaces</span></div>
       <a class="homelink" href="/" aria-label="All Little Easier apps">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1.5"></rect><rect x="14" y="4" width="6" height="6" rx="1.5"></rect><rect x="4" y="14" width="6" height="6" rx="1.5"></rect><rect x="14" y="14" width="6" height="6" rx="1.5"></rect></svg>
         <span>All apps</span>
@@ -524,7 +523,7 @@ html.in-app .grid > .pondlive { grid-column: 1 / -1; }
     </div>
     </div>
 
-    <p class="foot">Grown-ups: once a play space is open, tap the lock in the bottom corner for the wind-down timer, volume and more.</p>
+    <p class="foot">Grown-ups: once a play space is open, tap ••• in the top corner for the wind-down timer, volume and more.</p>
   </div>
 </div>
 
@@ -1324,6 +1323,26 @@ void main(){
   // ---------- input ----------
   const pointers = new Map();
   let started = false, hintGone = false, inHome = true, sessionOn = false;
+  // first-time hints, one at a time: blow, then pop, then join. Each fades the moment it's done and
+  // the next one follows a moment later; once all three are done they never show again.
+  const COACH = ['Hold anywhere and keep holding', 'Tap a bubble to pop it', 'Push two bubbles together'];
+  const hintEl = document.getElementById('hint');
+  let coachStep = 0, coachT = 0;
+  try { coachStep = Math.min(COACH.length, +localStorage.getItem('calm-bubbles-coach') || 0); } catch (e) {}
+  if (coachStep >= COACH.length) hintEl.classList.add('gone'); else hintEl.textContent = COACH[coachStep];
+  function coachDone(step) {
+    if (coachStep !== step) return;
+    coachStep++;
+    hintGone = true;
+    try { localStorage.setItem('calm-bubbles-coach', String(coachStep)); } catch (e) {}
+    hintEl.classList.add('gone');
+    clearTimeout(coachT);
+    if (coachStep < COACH.length) coachT = setTimeout(() => {
+      if (coachStep >= COACH.length) return;
+      hintEl.textContent = COACH[coachStep];
+      hintEl.classList.remove('gone');
+    }, 2600);
+  }
   function hitTest(x, y) {
     for (let i = bubbles.length - 1; i >= 0; i--) {
       const b = bubbles[i];
@@ -1359,7 +1378,7 @@ void main(){
       p.mode = 'blow';
       p.b = b;
       b.alpha = 1;
-      if (!hintGone) { hintGone = true; document.getElementById('hint').classList.add('gone'); }
+      coachDone(0);
     }
     haptic(5);
     pointers.set(e.pointerId, p);
@@ -1390,6 +1409,7 @@ void main(){
     if (p.mode === 'grab') {
       if (dur < 240 && moved < 12) {
         pop(b, false, true);
+        coachDone(1);
         haptic(12);
       } else {
         b.vx = cap(p.vx) * 0.55;
@@ -1532,6 +1552,7 @@ void main(){
         keep.thin0 = Math.min(keep.thin0, gone.thin0);
         if (gone.kind && !keep.kind) setKind(keep, gone.kind);
         gone.absorb = keep;
+        coachDone(2);
         for (const p of pointers.values()) {
           if (p.b === gone) {
             p.b = keep;
@@ -1931,19 +1952,19 @@ void main(){
     settings.pop = style;
     soundOn = style !== 'off';
     if (wetGain) wetGain.gain.value = style === 'soft' ? 0.16 : 0.42;
-    save(); labelKid(); showTip(STYLE_LABEL[style]);
+    save(); labelKid(); showTip('Sound: ' + STYLE_LABEL[style]);
     popSound(28, 0);
   });
   bBg.addEventListener('click', () => {
     wake();
     settings.bgs = BGS[(BGS.indexOf(settings.bgs) + 1) % BGS.length];
-    save(); labelKid(); showTip(BG_LABEL[settings.bgs]);
+    save(); labelKid(); showTip(settings.bgs === 'off' ? 'Background sound off' : 'Background: ' + BG_LABEL[settings.bgs]);
     if (started) startBackground(settings.bgs);
   });
   bScene.addEventListener('click', () => {
     wake();
     settings.scene = (settings.scene + 1) % 4;
-    save(); labelKid(); showTip(SCENE_LABEL[settings.scene]);
+    save(); labelKid(); showTip('Scene: ' + SCENE_LABEL[settings.scene]);
     if (style === 'musical') chime(midiFromIndex(8 + settings.scene), 0.05, 1.0);
   });
   applyView();

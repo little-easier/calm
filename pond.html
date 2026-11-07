@@ -10,9 +10,9 @@
 <meta name="theme-color" content="#0B2629">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<title>Calm · Pond</title>
+<title>Calm Spaces · Pond</title>
 <style>
-/* Layout: full-bleed WebGL koi pond; brand top-left, scene/sound/lock buttons top-right, tool tray at the bottom. Single deliberate look. */
+/* Layout: full-bleed WebGL koi pond; brand top-left, scene/sound buttons and grown-ups "•••" top-right, tool tray at the bottom. Single deliberate look. */
 :root{
   color-scheme: dark;
   --deep:#0B2629; --ink:#FBF4E6; --ink-soft:rgba(251,244,230,.72);
@@ -127,6 +127,10 @@ input[type=range]{width:100%; accent-color:#8FC1B5; height:28px}
 #againRing{position:absolute; inset:-4px; width:calc(100% + 8px); height:calc(100% + 8px); pointer-events:none}
 .nogl{position:fixed; inset:0; display:grid; place-items:center; text-align:center; padding:24px; font-weight:800}
 .hap{position:fixed; left:-200px; top:0; width:1px; height:1px; opacity:0; pointer-events:none}
+
+/* grown-ups "•••": top-right corner, like Doodle Deep; outside .btns so "hide the top buttons" never hides it */
+.tr{display:flex; gap:7px; align-items:flex-start}
+.ib svg.dots{fill:currentColor; stroke:none}
 </style>
 </head>
 <body>
@@ -134,17 +138,19 @@ input[type=range]{width:100%; accent-color:#8FC1B5; height:28px}
 <canvas id="gl" aria-label="A koi pond you can play in. Pick a tool from the tray at the bottom."></canvas>
 <header>
   <a class="back" href="./" aria-label="Back to Calm home"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a>
+  <div class="tr">
   <div class="btns">
     <button class="ib" id="rainBtn" aria-label="Rain: off"><svg viewBox="0 0 24 24"><path d="M7 15a4 4 0 0 1-.6-7.95A5.5 5.5 0 0 1 17 8a3.5 3.5 0 0 1 .5 7z"/><path d="M8 18.5l-.8 2M12 18.5l-.8 2M16 18.5l-.8 2"/></svg></button>
     <button class="ib" id="sceneBtn" aria-label="Scene: Golden hour"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="3"/><path d="M3.5 15l4.5-4 4 3.5 3-2.5 5.5 4.5"/></svg></button>
     <button class="ib" id="bgBtn" aria-label="Background sound: Pond"><svg viewBox="0 0 24 24"><path d="M3 9c2 0 2-2 4.5-2S10 9 12 9s2-2 4.5-2S19 9 21 9"/><path d="M3 15c2 0 2-2 4.5-2s2.5 2 4.5 2 2-2 4.5-2 2.5 2 4.5 2"/></svg></button>
     <button class="ib" id="soundBtn" aria-label="Sound: Chimes"><svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg></button>
   </div>
+  <button class="ib grown" id="grownBtn" aria-label="For grown-ups"><svg class="dots" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="18.5" cy="12" r="2"/></svg>
+  <svg class="ring" viewBox="0 0 48 48"><circle id="ringArc" cx="24" cy="24" r="22" fill="none" stroke="#8FC1B5" stroke-width="3" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="138.2" transform="rotate(-90 24 24)"/></svg></button>
+  </div>
 </header>
 
 <div class="bottom">
-<button class="ib grown" id="grownBtn" aria-label="Grown-ups settings"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
-  <svg class="ring" viewBox="0 0 48 48"><circle id="ringArc" cx="24" cy="24" r="22" fill="none" stroke="#8FC1B5" stroke-width="3" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="138.2" transform="rotate(-90 24 24)"/></svg></button>
 <nav class="tray" aria-label="Tools">
   <button class="tool" data-tool="hand" aria-label="Hand" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M8 12.5V6.2a1.4 1.4 0 0 1 2.8 0v5.3M10.8 11V4.6a1.4 1.4 0 0 1 2.8 0V11M13.6 11V5.8a1.4 1.4 0 0 1 2.8 0v6.4M16.4 10.5a1.4 1.4 0 0 1 2.8 0V14a6.5 6.5 0 0 1-6.5 6.5h-.9a6 6 0 0 1-5-2.7l-2.6-4a1.45 1.45 0 0 1 2.4-1.6L8 14"/></svg></button>
   <button class="tool" data-tool="food" aria-label="Fish food" aria-pressed="false"><svg viewBox="0 0 24 24"><circle class="fill" cx="7" cy="15" r="2"/><circle class="fill" cx="12" cy="11" r="2"/><circle class="fill" cx="16.5" cy="15.5" r="2"/><circle class="fill" cx="11" cy="18.5" r="1.6"/><circle class="fill" cx="15.5" cy="7.5" r="1.5"/><circle class="fill" cx="8.5" cy="7" r="1.3"/></svg></button>
@@ -359,13 +365,13 @@ function paint(){
 }
 paint();
 bgBtn.addEventListener('pointerdown', e=>e.stopPropagation());
-bgBtn.addEventListener('click', ()=>{ settings.bg = BG_ORDER[(BG_ORDER.indexOf(settings.bg)+1)%BG_ORDER.length]; paint(); save(); audioOn(); refreshLoops(); toast(settings.bg==='off' ? 'Background sound off' : BG_NAME[settings.bg]); haptic(); });
+bgBtn.addEventListener('click', ()=>{ settings.bg = BG_ORDER[(BG_ORDER.indexOf(settings.bg)+1)%BG_ORDER.length]; paint(); save(); audioOn(); refreshLoops(); toast(settings.bg==='off' ? 'Background sound off' : 'Background: '+BG_NAME[settings.bg]); haptic(); });
 [rainBtn, sceneBtn, soundBtn, grownBtn].forEach(b=>b.addEventListener('pointerdown', e=>e.stopPropagation()));
-rainBtn.addEventListener('click', ()=>{ settings.rain = settings.rain==='on'?'off':'on'; paint(); save(); refreshLoops(); toast(settings.rain==='on'?'Rain':'Rain off'); haptic();
+rainBtn.addEventListener('click', ()=>{ settings.rain = settings.rain==='on'?'off':'on'; paint(); save(); refreshLoops(); toast(settings.rain==='on'?'Rain: on':'Rain: off'); haptic();
   if(settings.rain==='off' && settings.scene!=='night' && Math.random()<.7) setTimeout(()=>startRainbow(), 2500); });
-sceneBtn.addEventListener('click', ()=>{ settings.scene = SCENE_ORDER[(SCENE_ORDER.indexOf(settings.scene)+1)%SCENE_ORDER.length]; paint(); save(); refreshLoops(); restyleAmbient(); toast(SCENE_NAME[settings.scene]); haptic(); });
+sceneBtn.addEventListener('click', ()=>{ settings.scene = SCENE_ORDER[(SCENE_ORDER.indexOf(settings.scene)+1)%SCENE_ORDER.length]; paint(); save(); refreshLoops(); restyleAmbient(); toast('Scene: '+SCENE_NAME[settings.scene]); haptic(); });
 soundBtn.addEventListener('click', ()=>{ settings.style = STYLE_ORDER[(STYLE_ORDER.indexOf(settings.style)+1)%STYLE_ORDER.length]; paint(); save();
-  audioOn(); if(settings.style!=='quiet') chord([0,2,4], .07); toast(STYLE_NAME[settings.style]); haptic(); });
+  audioOn(); if(settings.style!=='quiet') chord([0,2,4], .07); toast(settings.style==='quiet' ? 'Sound: Quiet' : 'Sound: '+STYLE_NAME[settings.style]); haptic(); });
 // grown-ups: the grown-up check (gate.js)
 const ringArc = $('ringArc'); let holdRaf = 0, holdStart = 0, holdDone = false;
 function holdTick(){ const p = Math.min(1, (performance.now()-holdStart)/2000); ringArc.setAttribute('stroke-dashoffset', 138.2*(1-p));

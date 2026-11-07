@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#07090F">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<title>Calm · Glow</title>
+<title>Calm Spaces · Glow</title>
 <style>
 /* Layout: full-bleed dark liquid canvas; a small wordmark above and quiet pill controls floating at the bottom. */
 :root{
@@ -88,16 +88,21 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 .again .ring rect{fill:none;stroke:var(--glow);stroke-width:3}
 @media (prefers-reduced-motion:reduce){.done{animation:none}}
 .nogl{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;color:var(--ink-soft)}
+
+/* grown-ups "•••": top-right corner, like Doodle Deep; outside #kid-top so hiding the buttons never hides it */
+.tr{display:flex;gap:8px;align-items:center;pointer-events:auto}
+.top .lock{position:relative;left:auto;bottom:auto;width:42px;height:42px;color:var(--ink);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.top .lock svg.ic{width:20px;height:20px;fill:currentColor;stroke:none}
 </style>
 </head>
 <body>
 
 <canvas id="c" aria-label="Glowing liquid colour. Drag to swirl it."></canvas>
 <canvas id="fx" aria-hidden="true"></canvas>
-<header class="top"><a class="back" href="./" aria-label="Back to Calm home"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a><div class="kid" id="kid-top">
+<header class="top"><a class="back" href="./" aria-label="Back to Calm home"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></a><div class="tr"><div class="kid" id="kid-top">
   <button id="scene-btn" aria-label="Scene: Night tank"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="3"/><path d="M3.5 15l4.5-4 4 3.5 3-2.5 5.5 4.5"/></svg></button>
   <button id="sound-btn" aria-label="Drag sound: Chimes"><svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg></button>
-</div></header>
+</div><button class="lock" id="lock" aria-label="For grown-ups"><svg class="ic" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="18.5" cy="12" r="2"/></svg><svg class="ring" viewBox="0 0 46 46"><circle id="lock-ring" cx="23" cy="23" r="21" stroke-dasharray="132" stroke-dashoffset="132"/></svg></button></div></header>
 <p class="hint" id="hint">Drag to swirl the ink. Tap to drop some in.</p>
 <nav class="bar" aria-label="Controls">
   <div class="swatches" id="swatches" role="group" aria-label="Ink colour"></div>
@@ -106,10 +111,6 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
     <button id="fade">Fade away</button>
   </div>
 </nav>
-<button class="lock" id="lock" aria-label="Grown-ups settings">
-  <svg class="ic" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
-  <svg class="ring" viewBox="0 0 46 46"><circle id="lock-ring" cx="23" cy="23" r="21" stroke-dasharray="132" stroke-dashoffset="132"/></svg>
-</button>
 <p class="toast" id="toast" role="status"></p>
 <div class="sheet" id="grown" role="dialog" aria-label="Grown-ups" hidden>
   <h2>Grown-ups</h2>
@@ -547,7 +548,7 @@ const sceneBtn=document.getElementById('scene-btn'),soundBtn=document.getElement
 function setScene(k){sceneIdx=k;document.body.dataset.scene=k===3?'glass':'dark';sceneBtn.setAttribute('aria-label','Scene: '+SCENES[k])}
 function setSound(k){soundIdx=k;soundOn=SOUNDS[k][0]!=='quiet';soundBtn.setAttribute('aria-label','Drag sound: '+SOUNDS[k][1]);soundBtn.style.opacity=soundOn?1:0.55;if(soundOn)ensureAudio();applyGain()}
 function savePicks(){try{localStorage.setItem('le-glow-picks',JSON.stringify({scene:sceneIdx,sound:soundIdx}))}catch(_){}}
-sceneBtn.addEventListener('click',()=>{setScene((sceneIdx+1)%SCENES.length);toast(SCENES[sceneIdx]);buzz(8);savePicks()});
+sceneBtn.addEventListener('click',()=>{setScene((sceneIdx+1)%SCENES.length);toast('Scene: '+SCENES[sceneIdx]);buzz(8);savePicks()});
 soundBtn.addEventListener('click',()=>{setSound((soundIdx+1)%SOUNDS.length);toast('Sound: '+SOUNDS[soundIdx][1]);buzz(8);savePicks();if(soundOn&&actx)bell(NOTES[soundIdx*2],0.04)});
 shapeBtn.addEventListener('click',()=>{shapeIdx=(shapeIdx+1)%SHAPES.length;scalePaint(0);makeMask();
   shapeName.textContent=SHAPES[shapeIdx]||'Shapes';toast(SHAPES[shapeIdx]?'Swirl ink inside the '+SHAPES[shapeIdx].toLowerCase()+' and it stays':'No shape');buzz(8)});
