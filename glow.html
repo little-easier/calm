@@ -691,6 +691,8 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+// screenshots and videos only: glow.html?demo exposes a few helpers (never used in normal play)
+if(/[?&]demo\b/.test(location.search)) window.__glow = { spawnFish, spawnJelly, setScene, setSound, setRare: v => { rare = v; } };
 })();
 </script>
 <script>

@@ -1571,6 +1571,8 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+// screenshots and videos only: pond.html?demo exposes a few helpers (never used in normal play)
+if(/[?&]demo\b/.test(location.search)) window.__pond = { sprinkleFood, spawnDucks, spawnGolden, spawnKingfisher, spawnStar, spawnTurtle, startRainbow, releaseKoi, makeKoi, koi, VARIETIES, SPECIALS, skimStone, dropStone, setRoll: f => { rollVariety = f; }, size: () => ({ W, H }) };
 })();
 </script>
 <script>

@@ -744,6 +744,8 @@ function frame(now){
 }
 requestAnimationFrame(frame);
 window.__glade={spawn:spawnSurprise,wind:(ago)=>{state='winding';wStart=performance.now()-ago}};
+// screenshots and videos only: glade.html?demo exposes a few helpers (never used in normal play)
+if(/[?&]demo\b/.test(location.search)) window.__glade = { burst, spawnSurprise, setScene, setDust, setRare: v => { rare = v; }, size: () => ({ W, H }) };
 })();
 </script>
 <script>
