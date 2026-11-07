@@ -434,16 +434,21 @@ function haptic(){
 /* ===================================================== layers + ripple sim */
 let FSC = 1, SSC = 1.5; const GSC = .5, CELL = 3, Z = .74;
 let texReady = false; /* textures allocated at the current size; later frames only update them */
-const fcv = document.createElement('canvas'), fctx = fcv.getContext('2d');
-const scv = document.createElement('canvas'), sctx = scv.getContext('2d');
-const gcv = document.createElement('canvas'), gctx = gcv.getContext('2d');
+/* willReadFrequently keeps these layers in ordinary memory: handing them to WebGL each frame is then a plain copy
+   instead of a read-back from the GPU (measured on an iPad A16: about 33 ms down to 25 ms a frame) */
+const fcv = document.createElement('canvas'), fctx = fcv.getContext('2d', {willReadFrequently:true});
+const scv = document.createElement('canvas'), sctx = scv.getContext('2d', {willReadFrequently:true});
+const gcv = document.createElement('canvas'), gctx = gcv.getContext('2d', {willReadFrequently:true});
 let W=0, H=0, gw=0, gh=0, cur, prev, bytes, unit=1, damp=.986;
 function resize(){
   W = window.innerWidth; H = window.innerHeight; unit = clamp(Math.min(W,H)/400, .85, 1.35)*Z;
   /* big screens (iPad) cost far more per frame: keep the water shader and the layers
      under a pixel budget so it stays smooth; phones keep the full 1.5x */
   const fit = Math.sqrt(1.25e6/(W*H));
-  const dpr = Math.max(1, Math.min(1.5, window.devicePixelRatio||1, fit));
+  /* tablets: the water shader is the heaviest GPU work, so shade it at about 0.75 megapixels and let the screen scale it up
+     (soft rippling water hides it; measured on an iPad A16). Phones keep their sharper budget. */
+  const big = W*H > 6e5, wfit = big ? Math.sqrt(.75e6/(W*H)) : fit;
+  const dpr = Math.max(big ? .7 : 1, Math.min(1.5, window.devicePixelRatio||1, wfit));
   SSC = Math.max(1, Math.min(1.5, fit)); FSC = Math.min(1, Math.max(.8, fit));
   texReady = false;
   cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr);
@@ -708,22 +713,34 @@ function dropStone(x, y){
   disturb(x, y, 20, 3); fears.push({x, y, t:performance.now()}); plunk(); haptic();
   bubbleBurst(x, y, 10); bubbleStream(x, y, 2600); addFloorStone(x+rand(-4,4), y+rand(-4,4));
 }
-function skimStone(x, y, vx, vy){
-  const sp = Math.hypot(vx,vy), M = 22*unit; if(sp > M){ vx *= M/sp; vy *= M/sp; }
-  skimmers.push({x, y, vx, vy, hop:0, hopLen:0, skips:0, h:0, rot:rand(0,6.28), c:STONE_COLS[Math.floor(Math.random()*STONE_COLS.length)]});
+/* skimming: the flick decides everything. fx, fy = finger speed in px/ms.
+   speed:  in proportion to the flick (soft = slow, hard = fast), easing off only at the very top
+   skips:  in proportion to the flick too (soft about 3, hard up to 30); each hop is a bit shorter and slower
+           than the last, ending in quick little pitter-pat hops before it sinks */
+function skimStone(x, y, fx, fy){
+  const g = Math.hypot(fx,fy)/unit, V = 24;
+  const v0 = unit*V*Math.tanh((2.5 + 4.5*g)/V);               /* px per 60fps frame */
+  const n = Math.max(1, Math.min(30, Math.round(1 + 3*g)));
+  const a = Math.atan2(fy, fx);
+  skimmers.push({x, y, dx:Math.cos(a), dy:Math.sin(a), v:v0, d:Math.pow(.4, 1/n), D:unit*40 + 6*v0, n,
+    hop:0, hopLen:0, skips:0, h:0, rot:rand(0,6.28), c:STONE_COLS[Math.floor(Math.random()*STONE_COLS.length)]});
 }
-function updateSkimmers(){
+/* k = how many 60fps frames this frame stands for, so a stone flies at the same speed whatever the frame rate */
+function updateSkimmers(k){
   for(let i=skimmers.length-1;i>=0;i--){
-    const s = skimmers[i], sp = Math.hypot(s.vx,s.vy);
-    if(!s.hopLen){ s.hopLen = Math.max(6, sp*.55); s.hop = 0; }
-    s.x += s.vx; s.y += s.vy; s.rot += .4; s.hop++; s.h = Math.sin(s.hop/s.hopLen*Math.PI);
+    const s = skimmers[i];
+    if(!s.hopLen){ s.hopLen = Math.max(3, s.D/s.v); s.hop = 0; }
+    s.x += s.dx*s.v*k; s.y += s.dy*s.v*k; s.rot += .4*k; s.hop += k; s.h = Math.sin(Math.min(1, s.hop/s.hopLen)*Math.PI);
     if(s.hop >= s.hopLen){
       disturb(s.x, s.y, 9, 1.3); skipSound(s.skips); haptic(); s.skips++;
-      s.vx *= .8; s.vy *= .8; s.hopLen = 0;
-      if(Math.hypot(s.vx,s.vy) < 3*unit){ skimmers.splice(i,1); disturb(s.x,s.y,14,2); bubbleBurst(s.x,s.y,8); bubbleStream(s.x,s.y,2000); addFloorStone(s.x,s.y); plunk(.6);
+      s.v *= s.d; s.D *= .82; s.hopLen = 0;
+      if(s.skips >= s.n){ skimmers.splice(i,1); disturb(s.x,s.y,14,2); bubbleBurst(s.x,s.y,8); bubbleStream(s.x,s.y,2000); addFloorStone(s.x,s.y); plunk(.6);
         if(s.skips >= 6) toast(s.skips+' skips!'); continue; }
     }
-    if(s.x < -40 || s.x > W+40 || s.y < -40 || s.y > H+40){ skimmers.splice(i,1); if(s.skips >= 4) toast(s.skips+' skips!'); }
+    /* the screen edge is the pond's bank: the stone glances off and keeps skipping, so a hard flick always gets all its skips */
+    const m = 18*unit;
+    if((s.x < m && s.dx < 0) || (s.x > W-m && s.dx > 0)){ s.dx = -s.dx; disturb(s.x, s.y, 6, .8); }
+    if((s.y < m && s.dy < 0) || (s.y > H-m && s.dy > 0)){ s.dy = -s.dy; disturb(s.x, s.y, 6, .8); }
   }
 }
 
@@ -1350,7 +1367,7 @@ function up(e){
     const h = t.hist.filter(p=>now-p.t < 110);
     const dt = h.length>1 ? Math.max(16, h[h.length-1].t-h[0].t) : 1;
     const vx = h.length>1 ? (h[h.length-1].x-h[0].x)/dt : 0, vy = h.length>1 ? (h[h.length-1].y-h[0].y)/dt : 0;
-    if(Math.hypot(vx,vy) > .55){ skimStone(t.x, t.y, vx*16, vy*16); swish(); haptic(); }
+    if(Math.hypot(vx,vy) > .55){ skimStone(t.x, t.y, vx, vy); swish(); haptic(); }
     else dropStone(t.x, t.y);
   }
 }
@@ -1424,7 +1441,7 @@ const kiss = ()=>{ noiseHit(1400, 1.2, .05, .02); note(Math.floor(rand(10,15)), 
 const splash = ()=>{ noiseHit(1200, .7, .45, .2, 0, 250); noiseHit(2200, 1, .3, .05, .1, 700); };
 const plunk = (amt=1)=>{ noiseHit(500, .8, .35, .2*amt, 0, 160); noiseHit(1600, 1.4, .18, .05*amt, .05, 600); note(0, .05*amt, true); };
 const swish = ()=>noiseHit(2600, .6, .18, .04, 0, 1200);
-const skipSound = i=>{ noiseHit(1400 + i*120, 1.4, .1, .07); note(5 + i, .05); };
+const skipSound = i=>{ const j = Math.min(i, 12); noiseHit(1400 + j*120, 1.4, .1, .07); note(5 + j, .05); }; /* pitch climbs for a dozen skips, then holds */
 const popTick = ()=>noiseHit(3500, 3, .02, .015);
 function noiseLoop(kind){
   const a = ac, len = a.sampleRate*4, b = a.createBuffer(1, len, a.sampleRate), d = b.getChannelData(0); let last = 0, b0=0, b1=0, b2=0;
@@ -1489,6 +1506,7 @@ window.addEventListener('resize', resize);
 startTimer(); scheduleSurprise(performance.now());
 if(settings.surprise!=='0') nextSurprise = performance.now() + 15000;
 let nextDrip = performance.now()+3000;
+let lastFrameT = 0;
 function frame(now){
   lerpScene();
   if(now > nextDrip){ disturb(rand(0,W), rand(0,H), 6, .9); nextDrip = now + rand(3500,9500); }
@@ -1500,7 +1518,8 @@ function frame(now){
   for(const fr of frogs) updateFrog(fr, now);
   for(const d of flies) updateFly(d, now);
   for(const st of striders) updateStrider(st, now);
-  updateSkimmers(); updateBubbles(now);
+  const fk = Math.min(3, (now - (lastFrameT || now))/16.67) || 1; lastFrameT = now;
+  updateSkimmers(fk); updateBubbles(now);
   while(fears.length && now-fears[0].t > 900) fears.shift();
   floatAll(now);
   sim(); sim();

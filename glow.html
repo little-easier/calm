@@ -91,8 +91,14 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 
 /* grown-ups "•••": top-right corner, like Doodle Deep; outside #kid-top so hiding the buttons never hides it */
 .tr{display:flex;gap:8px;align-items:center;pointer-events:auto}
-.top .lock{position:relative;left:auto;bottom:auto;width:42px;height:42px;color:var(--ink);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.top .lock{position:relative;left:auto;bottom:auto;width:42px;height:42px;color:var(--ink)}
 .top .lock svg.ic{width:20px;height:20px;fill:currentColor;stroke:none}
+
+/* grown-ups card: centred over a dimmed backdrop and scrolls if tall, same as Pond and Bubbles */
+.sheet{top:50%;bottom:auto;transform:translate(-50%,-50%);max-height:calc(100% - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 48px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;z-index:21;background:rgba(16,20,40,.98)}
+.scrim{position:fixed;inset:0;background:rgba(2,6,16,.5);z-index:20;touch-action:none}
+.shead{display:flex;justify-content:space-between;align-items:center;gap:12px;position:sticky;top:-20px;z-index:2;margin:-20px -20px 0;padding:20px 20px 10px;background:rgba(16,20,40,.98)} /* title and Done stay put while the settings scroll under them */
+.sheet .shead .close{align-self:auto}
 </style>
 </head>
 <body>
@@ -112,8 +118,9 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
   </div>
 </nav>
 <p class="toast" id="toast" role="status"></p>
+<div class="scrim" id="g-scrim" hidden></div>
 <div class="sheet" id="grown" role="dialog" aria-label="Grown-ups" hidden>
-  <h2>Grown-ups</h2>
+  <div class="shead"><h2>Grown-ups</h2><button class="close" id="g-close">Done</button></div>
   <div class="grp"><span>Wind down</span>
     <div class="seg" id="wind"><button data-v="0" id="w0">Off</button><button data-v="5" id="w5">5 min</button><button data-v="10" id="w10">10 min</button><button data-v="15" id="w15">15 min</button><button data-v="20" id="w20">20 min</button></div>
     <p class="note" id="wind-note">Sound and colour fade slowly over 30 seconds, then it says goodnight. No sudden stop.</p>
@@ -127,7 +134,6 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
     <div class="seg" id="kid"><button data-v="show" id="k-show">Show</button><button data-v="hide" id="k-hide">Hide</button></div>
     <p class="note">Hide them if they become a distraction. Whatever is chosen stays on.</p>
   </div>
-  <button class="close" id="g-close">Done</button>
 </div>
 <div class="done" id="done" hidden>
   <svg width="96" height="96" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="34" fill="#E9EEF8"/><circle cx="62" cy="38" r="30" fill="#07090F"/></svg>
@@ -572,6 +578,9 @@ const lockRing=document.getElementById('lock-ring'),grown=document.getElementByI
 document.getElementById('lock').addEventListener('pointerdown',e=>e.stopPropagation());
 document.getElementById('lock').addEventListener('click',e=>{e.preventDefault();LEGate.ask(()=>{grown.hidden=false;buzz(15)})});
 document.getElementById('g-close').addEventListener('click',()=>{grown.hidden=true});
+// grown-ups backdrop follows the card (it's opened and closed from several places); tap it to close
+{const scrim=document.getElementById('g-scrim'),card=document.getElementById('grown');const sync=()=>{scrim.hidden=card.hidden};new MutationObserver(sync).observe(card,{attributes:true,attributeFilter:['hidden']});sync();scrim.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();card.hidden=true})}
+
 function setSeg(id,v){document.querySelectorAll('#'+id+' button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===String(v)?'true':'false'))}
 function save(){try{localStorage.setItem('le-glow',JSON.stringify({windMin,vol,rare,kid:bar.hidden?'hide':'show'}))}catch(_){}}
 document.querySelectorAll('#wind button').forEach(b=>b.addEventListener('click',()=>{windMin=+b.dataset.v;windStart=performance.now();setSeg('wind',windMin);save();
